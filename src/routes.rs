@@ -1,8 +1,3 @@
-use diesel::r2d2::ConnectionManager;
-use diesel::mysql::MysqlConnection;
-
-pub type Pool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
-
 pub mod root {
   use crate::models;
   use rocket::response::{Redirect, status::Custom};
@@ -10,7 +5,7 @@ pub mod root {
   use rocket::http::Status;
   use rocket::serde::{json::Json};
   use nanoid::{nanoid};
-  use super::Pool;
+  use crate::fairings::database::Pool;
   use crate::guards;
 
   use diesel::QueryDsl;

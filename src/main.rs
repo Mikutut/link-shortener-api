@@ -13,15 +13,7 @@ fn rocket() -> _ {
 
   rocket::custom(figment)
     .attach(AdHoc::config::<Config>())
-    .attach(AdHoc::on_ignite("Database Pool Initiator", |rocket| Box::pin(async {
-      let config = rocket.state::<Config>().expect("Could not get config information!");
-      let database_url = config.database_url.clone();
-
-      let manager = ConnectionManager::<MysqlConnection>::new(&database_url);
-      let pool: routes::Pool = r2d2::Pool::builder().build(manager).expect("Could not create connection pool!");
-
-      rocket.manage(pool)
-    })))
+    .attach(fairings::database::DatabaseInitiator)
     .attach(fairings::rate_limit::RateLimit)
     .mount("/", routes![
       routes::root::get_links, 
