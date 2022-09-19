@@ -1,0 +1,29 @@
+[package]
+name = "link_shortener_api"
+version = "0.1.0"
+license = "Apache-2.0"
+authors = [ "Marcin \"Mikut\" Mikuła" ]
+repository = "https://github.com/Mikutut/link-shortener-api"
+homepage = "https://ls.mikut.dev"
+readme = "README.md"
+documentation = "DOCS.md"
+description = "Backend API used by \"Link shortener\" (https://ls.mikut.dev)"
+publish = false
+
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+diesel = { version = "2.0.0", features = ["mysql", "chrono", "r2d2", "serde_json"] }
+rocket = { version = "0.5.0-rc.2", features = ["json"] }
+serde = { version = "1.0.144", features = [ "derive", "rc" ] }
+serde_json = "1.0.85"
+nanoid = "0.4.0"
+chrono = { version = "0.4.22", features = [ "serde" ] }
+r2d2 = "0.8.10"
+log = "0.4.17"
+fast_log = "1.5.37"
+figment = { version = "0.10.7", features = ["toml"] }
+bcrypt = "0.13.0"
+url = { version = "2.3.1", features = [ "serde" ] }
