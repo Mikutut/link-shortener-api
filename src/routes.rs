@@ -7,6 +7,7 @@ pub mod root {
   use nanoid::{nanoid};
   use crate::fairings::database::Pool;
   use crate::guards;
+  use bcrypt;
 
   use diesel::QueryDsl;
   use diesel::prelude::*;
@@ -58,7 +59,7 @@ pub mod root {
   }
 
   #[post("/add-link", data = "<link>", rank = 1)]
-  pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, rl: guards::rate_limit::RateLimit) -> Result<Json<models::Link>, &'static str> {
+  pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, rl: guards::rate_limit::RateLimit) -> Result<Json<models::db_less::NewLinkResult>, &'static str> {
     let mut pool = db.get().expect("Could not get database pool!");
     let conn = &mut *pool;
 
@@ -68,45 +69,57 @@ pub mod root {
     let new_control_key = nanoid!(24);
     let new_target = link.0.target;
 
-    let result = links::table
-      .select(links::link_id)
-      .load::<String>(conn);
-
-    if let Ok(results) = result {
-      while results.contains(&new_link_id) {
-        new_link_id = nanoid!(12);
-      }
-
-      let new_link = models::NewLink {
-        link_id: new_link_id.clone(),
-        target: new_target,
-        control_key: new_control_key
-      };
-
-      let result = diesel::insert_into(links::table)
-        .values(new_link)
-        .execute(conn);
-
-      if let Ok(_) = result {
+    match bcrypt::hash(new_control_key.clone(), bcrypt::DEFAULT_COST) {
+      Ok(new_control_key_hash) => {
         let result = links::table
-          .find(new_link_id)
-          .load::<models::Link>(conn);
+          .select(links::link_id)
+          .load::<String>(conn);
 
-        if let Ok(new_link) = result {
-          let new_link = new_link[0].clone();
+        if let Ok(results) = result {
+          while results.contains(&new_link_id) {
+            new_link_id = nanoid!(12);
+          }
 
-          Ok(Json(new_link))
+          let new_link = models::NewLink {
+            link_id: new_link_id.clone(),
+            target: new_target,
+            control_key: new_control_key_hash
+          };
+
+          let result = diesel::insert_into(links::table)
+            .values(new_link)
+            .execute(conn);
+
+          if let Ok(_) = result {
+            let result = links::table
+              .find(new_link_id)
+              .load::<models::Link>(conn);
+
+            if let Ok(new_link) = result {
+              let new_link = new_link[0].clone();
+
+              Ok(Json(models::db_less::NewLinkResult {
+                link_id: new_link.link_id,
+                target: new_link.target,
+                control_key: new_control_key
+              }))
+            } else {
+              Err("New link was added, but could not retrieve required data.")
+            }
+          } else {
+            Err("Could not add link to database!")
+          }
         } else {
-          Err("New link was added, but could not retrieve required data.")
+          return Err("Could not send database query!");
         }
-      } else {
-        Err("Could not add link to database!")
+      },
+      Err(_) => {
+        Err("Could not generate control key hash!")
       }
-    } else {
-      return Err("Could not send database query!");
     }
   }
 
+  // TODO: Implement bcrypt hash verification
   #[delete("/delete-link", data = "<link>")]
   pub fn delete_link(link: Json<models::db_less::DeleteLink>, db: &State<Pool>, rl: guards::rate_limit::RateLimit) -> Result<(), &'static str> {
     if let Ok(mut pool) = db.get() {
@@ -158,6 +171,7 @@ pub mod root {
     }
   }
 
+  // TODO: Implement bcrypt hash verification
   #[patch("/edit-link", data = "<link>")]
   pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, rl: guards::rate_limit::RateLimit) -> Result<Json<models::Link>, Custom<&'static str>> {
     //Err(Custom(Status::ServiceUnavailable, "Not implemented"))

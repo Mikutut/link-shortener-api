@@ -52,6 +52,15 @@ pub mod db_less {
   }
 
   #[derive(Serialize, Deserialize)]
+  pub struct NewLinkResult {
+    #[serde(rename = "linkId")]
+    pub link_id: String,
+    pub target: String,
+    #[serde(rename = "controlKey")]
+    pub control_key: String
+  }
+
+  #[derive(Serialize, Deserialize)]
   pub struct EditLink {
     #[serde(rename = "linkId")]
     pub link_id: String,
