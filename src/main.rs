@@ -2,10 +2,6 @@ use figment::providers::{Format, Toml};
 use rocket::{self, launch, routes, fairing::AdHoc, catchers};
 use link_shortener_api::{config::{Config}, catchers, routes, fairings};
 
-use diesel::r2d2;
-use diesel::r2d2::ConnectionManager;
-use diesel::mysql::MysqlConnection;
-
 #[launch]
 fn rocket() -> _ {
   let figment = rocket::config::Config::figment()
