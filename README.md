@@ -12,7 +12,7 @@
 
 ## Description
 
-A backend API used by [Link shortener](https://ls.mikut.dev). It is written in Rust, utilizing such crates as `diesel`, `r2d2`, `rocket`, `figment` and many others.
+A backend API used by [Link shortener](https://ls.mikut.dev). It is written in [Rust](https://rust-lang.org), utilizing such crates as `diesel`, `r2d2`, `rocket`, `figment` and many others.
 
 ---
 
