@@ -1,6 +1,6 @@
 use figment::providers::{Format, Toml};
 use rocket::{self, launch, routes, fairing::AdHoc, catchers};
-use link_shortener_api::{config::{Config}, catchers, routes};
+use link_shortener_api::{config::{Config}, catchers, routes, fairings};
 
 use diesel::r2d2;
 use diesel::r2d2::ConnectionManager;
@@ -22,6 +22,7 @@ fn rocket() -> _ {
 
       rocket.manage(pool)
     })))
+    .attach(fairings::rate_limit::RateLimit)
     .mount("/", routes![
       routes::root::get_links, 
       routes::root::add_link, 

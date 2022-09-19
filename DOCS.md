@@ -21,6 +21,8 @@ Configuration is stored inside of `Config.toml` file. It follows the same rules 
 | Key | Description |
 | :---: | :---:
 | `database_url` | Specifies URL used by diesel/r2d2 for connection to MySQL database |
+| `max_requests` | Specifies how many requests client can make in time window |
+| `max_requests_time_window` | Specifies the time window (in seconds) for rate limiter |
 
 ---
 

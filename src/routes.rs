@@ -11,12 +11,13 @@ pub mod root {
   use rocket::serde::{json::Json};
   use nanoid::{nanoid};
   use super::Pool;
+  use crate::guards;
 
   use diesel::QueryDsl;
   use diesel::prelude::*;
 
   #[get("/<link_id>")]
-  pub fn access_link(link_id: String, db: &State<Pool>) -> Result<Redirect, &'static str> {
+  pub fn access_link(link_id: String, db: &State<Pool>, rl: guards::rate_limit::RateLimit) -> Result<Redirect, &'static str> {
     if let Ok(mut pool) = db.get() {
       let conn = &mut *pool;
 
@@ -40,7 +41,7 @@ pub mod root {
   }
 
   #[get("/get-links")]
-  pub fn get_links(db: &State<Pool>) -> Json<Vec<models::db_less::GetLink>> {
+  pub fn get_links(db: &State<Pool>, rl: guards::rate_limit::RateLimit) -> Json<Vec<models::db_less::GetLink>> {
     let mut pool = db.get().expect("Could not get database pool!");
     let conn = &mut *pool;
 
@@ -62,7 +63,7 @@ pub mod root {
   }
 
   #[post("/add-link", data = "<link>", rank = 1)]
-  pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>) -> Result<Json<models::Link>, &'static str> {
+  pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, rl: guards::rate_limit::RateLimit) -> Result<Json<models::Link>, &'static str> {
     let mut pool = db.get().expect("Could not get database pool!");
     let conn = &mut *pool;
 
@@ -112,7 +113,7 @@ pub mod root {
   }
 
   #[delete("/delete-link", data = "<link>")]
-  pub fn delete_link(link: Json<models::db_less::DeleteLink>, db: &State<Pool>) -> Result<(), &'static str> {
+  pub fn delete_link(link: Json<models::db_less::DeleteLink>, db: &State<Pool>, rl: guards::rate_limit::RateLimit) -> Result<(), &'static str> {
     if let Ok(mut pool) = db.get() {
       let conn = &mut *pool;
       use crate::schema::links;
@@ -163,7 +164,7 @@ pub mod root {
   }
 
   #[patch("/edit-link", data = "<link>")]
-  pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>) -> Result<Json<models::Link>, Custom<&'static str>> {
+  pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, rl: guards::rate_limit::RateLimit) -> Result<Json<models::Link>, Custom<&'static str>> {
     //Err(Custom(Status::ServiceUnavailable, "Not implemented"))
     if let Ok(mut pool) = db.get() {
       use crate::schema::links;
