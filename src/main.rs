@@ -19,6 +19,8 @@ fn rocket() -> _ {
       routes::root::edit_link
     ])
     .register("/", catchers![
-      catchers::root::invalid_request_data
+      catchers::root::invalid_request_data,
+      catchers::root::rate_limited,
+      catchers::root::default_catcher
     ])
 }

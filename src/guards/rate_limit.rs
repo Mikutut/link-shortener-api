@@ -1,5 +1,5 @@
 use chrono::Utc;
-use rocket::{request::{self, FromRequest, Outcome, Request}, http::Status, State};
+use rocket::{request::{FromRequest, Outcome, Request}, http::Status, State};
 use crate::{fairings::rate_limit, config};
 use std::sync::Mutex;
 

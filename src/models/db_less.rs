@@ -39,6 +39,13 @@ pub struct EditLink {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct EditLinkResult {
+  #[serde(rename = "linkId")]
+  pub link_id: String,
+  pub target: String
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct DeleteLink {
   #[serde(rename = "linkId")]
   pub link_id: String,

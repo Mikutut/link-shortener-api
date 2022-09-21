@@ -6,3 +6,5 @@ pub mod routes;
 pub mod catchers;
 pub mod guards;
 pub mod fairings;
+
+pub mod responses;
