@@ -12,7 +12,7 @@
 
 ## Description
 
-A backend API used by [Link shortener](https://ls.mikut.dev). It is written in [Rust](https://rust-lang.org), utilizing such crates as `diesel`, `r2d2`, `rocket`, `figment` and many others.
+A backend API ~~used by [Link shortener](https://ls.mikut.dev)~~ planned to be used in [Link shortener](https://ls.mikut.dev). It is written in [Rust](https://rust-lang.org), utilizing such crates as `diesel`, `r2d2`, `rocket`, `figment` and many others.
 
 ---
 
@@ -36,8 +36,6 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
-Third party licenses are available in [THIRD_PARTY_LICENSES.html](THIRD_PARTY_LICENSES.html) file.
 
 ---
 
