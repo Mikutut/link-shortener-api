@@ -125,7 +125,10 @@ pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, _rl: gua
       let new_link_id: Result<String, ()>;
       let new_control_key = nanoid!(24);
       let new_target = link.target.clone();
+
       let base_url = config.base_url.clone();
+      let max_id_length = config.max_id_length.clone();
+      let max_auto_id_length = config.max_auto_id_length.clone();
 
       match bcrypt::hash(new_control_key.clone(), bcrypt::DEFAULT_COST) {
         Ok(new_control_key_hash) => {
@@ -135,7 +138,7 @@ pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, _rl: gua
 
           if let Ok(results) = result {
             new_link_id = match link_id {
-              Some(link_id) if link_id.len() <= 255 => {
+              Some(link_id) if link_id.len() <= max_id_length => {
                 match links::table
                   .filter(links::link_id.eq(link_id.clone()))
                   .count()
@@ -168,15 +171,15 @@ pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, _rl: gua
                   format!("ID '{}' is too long! (received length: {}, max length: {})",
                     link_id.clone(),
                     link_id.len(),
-                    255
+                    max_id_length
                   )
                 );
                 Err(())
               }
               None => {
-                let mut temp_id = nanoid!(6);
+                let mut temp_id = nanoid!(max_auto_id_length);
                 while results.contains(&temp_id) {
-                  temp_id = nanoid!(6);
+                  temp_id = nanoid!(max_auto_id_length);
                 }
 
                 Ok(temp_id)
@@ -334,7 +337,9 @@ pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, _rl: g
     let control_key = link.control_key.clone();
     let target = link.target.clone();
     let new_link_id = link.new_link_id.clone();
+
     let base_url = config.base_url.clone();
+    let max_id_length = config.max_id_length.clone();
 
     match (new_link_id.clone(), target.clone()) {
       (None, None) => {
@@ -353,14 +358,14 @@ pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, _rl: g
             .filter(links::link_id.eq(new_id.clone()))
             .get_result::<i64>(conn) {
               Ok(count) if count == 0 => {
-                if new_id.len() > 255 {
+                if new_id.len() > max_id_length {
                   response_builder.error(
                     Status::BadRequest,
                     ResponseErrorType::ValidationError,
                     format!("ID '{}' is too long! (received length: {}, max length: {})",
                       new_id.clone(),
                       new_id.len(),
-                      255
+                      max_id_length
                     )
                   );
                   Err(())

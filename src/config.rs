@@ -6,8 +6,8 @@ pub struct Config {
   pub max_requests: i64,
   pub max_requests_time_window: i64,
   pub base_url: String,
-  pub max_auto_id_length: i64,
-  pub max_id_length: i64
+  pub max_auto_id_length: usize,
+  pub max_id_length: usize
 }
 
 impl Default for Config {
