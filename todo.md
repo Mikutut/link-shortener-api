@@ -15,6 +15,8 @@
   - [x] Improved rate limiting
 - [x] Implement response schema
 - [x] Make responses great again!
+- [ ] Improve documentation
+- [ ] (Optionally) embed migrations into binary
 
 ---
 
