@@ -112,7 +112,6 @@ pub fn get_links(db: &State<Pool>, _rl: guards::rate_limit::RateLimit, config: &
   response_builder.build().json_respond()
 }
 
-//TODO: Handler generates new link ID even if one was provided with request
 #[post("/add-link", data = "<link>", rank = 1)]
 pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit, config: &State<Config>) -> ResponseResult<Json<JsonErrorResponse<models::db_less::NewLinkResult>>> {
   let mut response_builder = ResponseBuilder::new();
@@ -122,9 +121,10 @@ pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, _rl: gua
       use crate::schema::links;
       let conn = &mut *pool;
 
-      let mut new_link_id = nanoid!(12);
+      let link_id = link.link_id.clone();
+      let new_link_id: Result<String, ()>;
       let new_control_key = nanoid!(24);
-      let new_target = link.0.target;
+      let new_target = link.target.clone();
       let base_url = config.base_url.clone();
 
       match bcrypt::hash(new_control_key.clone(), bcrypt::DEFAULT_COST) {
@@ -134,50 +134,100 @@ pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, _rl: gua
             .load::<String>(conn);
 
           if let Ok(results) = result {
-            while results.contains(&new_link_id) {
-              new_link_id = nanoid!(12);
-            }
+            new_link_id = match link_id {
+              Some(link_id) if link_id.len() <= 255 => {
+                match links::table
+                  .filter(links::link_id.eq(link_id.clone()))
+                  .count()
+                  .get_result::<i64>(conn) {
+                    Ok(c) if c == 0 => {
+                      Ok(link_id)
+                    },
+                    Ok(_) => {
+                      response_builder.error(
+                        Status::Conflict,
+                        ResponseErrorType::DuplicateIdError,
+                        format!("ID '{}' is already in use!", link_id)
+                      );
+                      Err(())
+                    },
+                    Err(_) => {
+                      response_builder.error(
+                        Status::InternalServerError,
+                        ResponseErrorType::DatabaseError,
+                        String::from("Could not verify uniqueness of new ID!")
+                      );
+                      Err(())
+                    }
+                  }
+              },
+              Some(link_id) => {
+                response_builder.error(
+                  Status::BadRequest,
+                  ResponseErrorType::ValidationError,
+                  format!("ID '{}' is too long! (received length: {}, max length: {})",
+                    link_id.clone(),
+                    link_id.len(),
+                    255
+                  )
+                );
+                Err(())
+              }
+              None => {
+                let mut temp_id = nanoid!(6);
+                while results.contains(&temp_id) {
+                  temp_id = nanoid!(6);
+                }
 
-            let new_link = models::NewLink {
-              link_id: new_link_id.clone(),
-              target: new_target,
-              control_key: new_control_key_hash
+                Ok(temp_id)
+              }
             };
 
-            let result = diesel::insert_into(links::table)
-              .values(new_link)
-              .execute(conn);
+            match new_link_id {
+              Ok(new_link_id) => {
+                let new_link = models::NewLink {
+                  link_id: new_link_id.clone(),
+                  target: new_target,
+                  control_key: new_control_key_hash
+                };
 
-            if let Ok(_) = result {
-              let result = links::table
-                .find(new_link_id)
-                .load::<models::Link>(conn);
+                let result = diesel::insert_into(links::table)
+                  .values(new_link)
+                  .execute(conn);
 
-              if let Ok(new_link) = result {
-                let new_link = new_link[0].clone();
+                if let Ok(_) = result {
+                  let result = links::table
+                    .find(new_link_id)
+                    .load::<models::Link>(conn);
 
-                response_builder.success(Status::Ok);
-                response_builder.data(
-                  ResponseDataType::Value(models::db_less::NewLinkResult {
-                    link_id: new_link.link_id.clone(),
-                    target: new_link.target,
-                    control_key: new_control_key,
-                    link: format!("{}/{}", base_url, new_link.link_id)
-                  })
-                );              
-              } else {
-                response_builder.error(
-                  Status::InternalServerError,
-                  ResponseErrorType::DatabaseError,
-                  String::from("New link was added, but server could not retrieve required data.")
-                );
-              }
-            } else {
-              response_builder.error(
-                Status::InternalServerError,
-                ResponseErrorType::DatabaseError,
-                String::from("Could not add link to database!")
-              );
+                  if let Ok(new_link) = result {
+                    let new_link = new_link[0].clone();
+
+                    response_builder.success(Status::Ok);
+                    response_builder.data(
+                      ResponseDataType::Value(models::db_less::NewLinkResult {
+                        link_id: new_link.link_id.clone(),
+                        target: new_link.target,
+                        control_key: new_control_key,
+                        link: format!("{}/{}", base_url, new_link.link_id)
+                      })
+                    );              
+                  } else {
+                    response_builder.error(
+                      Status::InternalServerError,
+                      ResponseErrorType::DatabaseError,
+                      String::from("New link was added, but server could not retrieve required data.")
+                    );
+                  }
+                } else {
+                  response_builder.error(
+                    Status::InternalServerError,
+                    ResponseErrorType::DatabaseError,
+                    String::from("Could not add link to database!")
+                  );
+                }
+              },
+              Err(_) => {}
             }
           } else {
             response_builder.error(
