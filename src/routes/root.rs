@@ -1,55 +1,65 @@
-//TODO: Replace all occurrences of old response system
 use crate::models;
 use rocket::response::{Redirect, self};
 use rocket::{self, get, post, delete, patch, State};
 use rocket::http::Status;
-use rocket::serde::{json::Json};
+use rocket::serde::{json::{Json, Value, json}};
 use nanoid::{nanoid};
 use crate::fairings::database::Pool;
-use crate::{guards, responses::{self, Result as ResponseResult}};
+use crate::{guards, responses};
 use bcrypt;
 use url::{Url};
 
 use diesel::QueryDsl;
 use diesel::prelude::*;
 
-//TODO: Add new responses
 #[get("/<link_id>")]
-pub fn access_link(link_id: String, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> Result<Redirect, responses::Error> {
-  if let Ok(mut pool) = db.get() {
-    let conn = &mut *pool;
+pub fn access_link(link_id: String, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> Result<Redirect, responses::new::ResponseResult<Json<responses::new::JsonErrorResponse<()>>>> {
+  use responses::new::*;
+  let mut response_builder = responses::new::ResponseBuilder::new();
 
-    use crate::schema::links;
+  match db.get() {
+    Ok(mut pool) => {
+      use crate::schema::links;
 
-    let result = links::table
-      .find(link_id.clone())
-      .limit(1)
-      .load::<models::Link>(conn);
+      let conn = &mut *pool;
 
-    if let Ok(link) = result {
-      let target = link[0].clone().target;
+      match links::table
+        .find(link_id.clone())
+        .limit(1)
+        .load::<models::Link>(conn) {
+          Ok(link) if link.len() > 0 => {
+            let target = link[0].clone().target;
 
-      Ok(Redirect::temporary(target))
-    } else {
-      Err(
-        (Status::NotFound, Json(responses::ResponseError {
-          error_type: responses::ResponseErrorType::LinkNotFoundError,
-          error_message: format!("Link with ID \"{}\" not found!", link_id)
-        }))
-      )
+            return Ok(Redirect::temporary(target));
+          },
+          Ok(_) => {
+            response_builder.error(
+              Status::NotFound,
+              ResponseErrorType::LinkNotFoundError,
+              format!("Link with ID '{}' not found!", link_id)
+            );
+          },
+          Err(_) => {
+            response_builder.error(
+              Status::InternalServerError,
+              ResponseErrorType::DatabaseError,
+              String::from("Could not fetch links from the database!")
+            );
+          }
+        }
+    },
+    Err(_) => {
+      response_builder.error(
+        Status::InternalServerError,
+        ResponseErrorType::DatabaseError,
+        String::from("Could not get database pool!")
+      );
     }
-  } else {
-    Err((
-      Status::InternalServerError, 
-      Json(responses::ResponseError {
-        error_type: responses::ResponseErrorType::DatabaseError,
-        error_message: String::from("Could not get database pool!")
-      })
-    ))
   }
+
+  Err(response_builder.build().json_respond())
 }
 
-//TODO: Add new responses
 #[get("/get-links")]
 pub fn get_links(db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> responses::new::ResponseResult<Json<responses::new::JsonErrorResponse<Vec<models::db_less::GetLink>>>> {
   use responses::new::*;
@@ -103,7 +113,6 @@ pub fn get_links(db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> respon
 }
 
 //TODO: Handler generates new link ID even if one was provided with request
-//TODO: Add new responses
 #[post("/add-link", data = "<link>", rank = 1)]
 pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> responses::new::ResponseResult<Json<responses::new::JsonErrorResponse<models::db_less::NewLinkResult>>> {
   use responses::new::*;
@@ -199,9 +208,11 @@ pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, _rl: gua
   response_builder.build().json_respond()
 }
 
-//TODO: Add new responses
 #[delete("/delete-link", data = "<link>")]
-pub fn delete_link(link: Json<models::db_less::DeleteLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> Result<(), responses::Error> {
+pub fn delete_link(link: Json<models::db_less::DeleteLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> responses::new::ResponseResult<Json<responses::new::JsonErrorResponse<()>>> {
+  use responses::new::*;
+  let mut response_builder = ResponseBuilder::new();
+
   if let Ok(mut pool) = db.get() {
     let conn = &mut *pool;
     use crate::schema::links;
@@ -221,55 +232,53 @@ pub fn delete_link(link: Json<models::db_less::DeleteLink>, db: &State<Pool>, _r
                 .filter(links::link_id.eq(link_id.clone()))
                 .execute(conn) {
                   Ok(_) => {
-                    Ok(())
+                    response_builder.success(
+                      Status::Ok
+                    );
                   },
                   Err(_) => {
-                    Err((
+                    response_builder.error(
                       Status::InternalServerError,
-                      responses::ResponseError::new(
-                        responses::ResponseErrorType::DatabaseError,
-                        format!("Could not delete \"{}\" link from database!", link_id)
-                      ).to_json()
-                    ))
+                      ResponseErrorType::DatabaseError,
+                      format!("Could not delete link with ID '{}' from database!", link_id)
+                    );
                   }
                 }
             },
             _ => {
-              Err((
+              response_builder.error(
                 Status::Unauthorized,
-                responses::ResponseError::new(
-                  responses::ResponseErrorType::InvalidControlKeyError,
-                  format!("\"{}\" is not a valid control key for \"{}\" link!", control_key, link_id)
-                ).to_json()
-              ))
+                ResponseErrorType::InvalidControlKeyError,
+                format!("'{}' is not a valid control key for '{}' link!", control_key, link_id)
+              );
             }
           }
         },
         _ => {
-          Err((
-            Status::NotFound,
-            responses::ResponseError::new(
-              responses::ResponseErrorType::LinkNotFoundError,
-              format!("Link with ID \"{}\" not found", link_id)
-            ).to_json()
-          ))
+          response_builder.error(
+            Status::NotFound, 
+            ResponseErrorType::LinkNotFoundError, 
+            format!("Link with ID \"{}\" not found", link_id)
+          );
         }
       }
   } else {
-    Err((
+    response_builder.error(
       Status::InternalServerError, 
-      Json(responses::ResponseError {
-        error_type: responses::ResponseErrorType::DatabaseError,
-        error_message: String::from("Could not get database pool!")
-      })
-    ))
+      ResponseErrorType::DatabaseError, 
+      String::from("Could not get databse pool!")
+    );
   }
+
+  response_builder.build().json_respond()
 }
 
-// TODO: Add new responses
 #[patch("/edit-link", data = "<link>")]
-pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> ResponseResult<models::db_less::EditLinkResult> {
+pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> responses::new::ResponseResult<Json<responses::new::JsonErrorResponse<models::db_less::EditLinkResult>>> {
   //Err(Custom(Status::ServiceUnavailable, "Not implemented"))
+  use responses::new::*;
+  let mut response_builder: ResponseBuilder<models::db_less::EditLinkResult, Value> = ResponseBuilder::new();
+
   if let Ok(mut pool) = db.get() {
     let conn = &mut *pool;
 
@@ -280,72 +289,68 @@ pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, _rl: g
 
     match (new_link_id.clone(), target.clone()) {
       (None, None) => {
-        Err((
+        response_builder.error(
           Status::BadRequest,
-          responses::ResponseError::new(
-            responses::ResponseErrorType::ValidationError,
-            String::from("No editable properties found in request data!")
-          ).to_json()
-        ))
+          ResponseErrorType::ValidationError,
+          String::from("No editable properties found in request data!")
+        );
       },
       _ => {
         use crate::schema::links;
 
-        let new_link_id = if let Some(new_id) = new_link_id.clone() {
+        let new_link_id: Result<String, ()> = if let Some(new_id) = new_link_id.clone() {
           match links::table
             .count()
             .filter(links::link_id.eq(new_id.clone()))
             .get_result::<i64>(conn) {
               Ok(count) if count == 0 => {
                 if new_id.len() > 255 {
-                  Err((
+                  response_builder.error(
                     Status::BadRequest,
-                    responses::ResponseError::new(
-                      responses::ResponseErrorType::ValidationError,
-                      format!("ID '{}' is too long! (received length: {}, max length: {})",
-                        new_id.clone(),
-                        new_id.len(),
-                        255
-                      )
-                    ).to_json()
-                  ))
+                    ResponseErrorType::ValidationError,
+                    format!("ID '{}' is too long! (received length: {}, max length: {})",
+                      new_id.clone(),
+                      new_id.len(),
+                      255
+                    )
+                  );
+                  Err(())
                 } else {
                   Ok(new_id)
                 }
               },
               Ok(_) => {
-                Err((
+                response_builder.error(
                   Status::Conflict,
-                  responses::ResponseError::new(
-                    responses::ResponseErrorType::DuplicateIdError,
-                    format!("ID '{}' is already in use!", new_id)
-                  ).to_json()
-                ))
+                  ResponseErrorType::DuplicateIdError,
+                  format!("ID '{}' is already in use!", new_id)
+                );
+                Err(())
               },
               Err(_) => {
-                Err((
+                response_builder.error(
                   Status::InternalServerError,
-                  responses::ResponseError::new(
-                    responses::ResponseErrorType::DatabaseError,
-                    String::from("Could not verify uniqueness of new ID!")
-                  ).to_json()
-                ))
+                  ResponseErrorType::DatabaseError,
+                  String::from("Could not verify uniqueness of new ID!")
+                );
+                Err(())
               }
             }
         } else {
           Ok(link_id.clone())
         };
 
-        let target = if let Some(target_str) = target.clone() {
+        let target: Result<String, ()> = if let Some(target_str) = target.clone() {
           match Url::parse(&target_str) {
             Ok(_) => Ok(target_str),
-            Err(_) => Err((
-              Status::BadRequest,
-              responses::ResponseError::new(
-                responses::ResponseErrorType::ValidationError,
+            Err(_) => { 
+              response_builder.error(
+                Status::BadRequest,
+                ResponseErrorType::ValidationError,
                 format!("'{}' is not a valid URL!", target_str.clone())
-              ).to_json()
-            ))
+              );
+              Err(())
+            }
           }
         } else {
           match links::table
@@ -353,20 +358,22 @@ pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, _rl: g
             .filter(links::link_id.eq(link_id.clone()))
             .load::<String>(conn) {
               Ok(value) if value.len() > 0 => Ok(value[0].clone()),
-              Ok(_) => Err((
-                Status::NotFound,
-                responses::ResponseError::new(
-                  responses::ResponseErrorType::LinkNotFoundError,
+              Ok(_) => {
+                response_builder.error(
+                  Status::InternalServerError,
+                  ResponseErrorType::LinkNotFoundError,
                   format!("Link with ID '{}' not found!", link_id.clone())
-                ).to_json()
-              )),
-              Err(_) => Err((
-                Status::InternalServerError,
-                responses::ResponseError::new(
-                  responses::ResponseErrorType::DatabaseError,
+                );
+                Err(())
+              },
+              Err(_) => { 
+                response_builder.error(
+                  Status::InternalServerError,
+                  ResponseErrorType::DatabaseError,
                   String::from("Could not fetch necessary data from database!")
-                ).to_json()
-              ))
+                );
+                Err(())
+              }
             }
         };
 
@@ -387,66 +394,66 @@ pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, _rl: g
                         ))
                         .filter(links::link_id.eq(link_id.clone()))
                         .execute(conn) {
-                          Ok(_) => Ok((
-                            Status::Ok,
-                            Json(models::db_less::EditLinkResult {
-                              link_id: new_id,
-                              target: target_str
-                            })
-                          )),
-                          Err(_) => Err((
-                            Status::InternalServerError,
-                            responses::ResponseError::new(
-                              responses::ResponseErrorType::DatabaseError,
+                          Ok(_) => { 
+                            response_builder.success(Status::Ok)
+                              .data(ResponseDataType::Value(models::db_less::EditLinkResult {
+                                link_id: new_id,
+                                target: target_str
+                              }));
+                          },
+                          Err(_) => { 
+                            response_builder.error(
+                              Status::InternalServerError,
+                              ResponseErrorType::DatabaseError,
                               format!("Could not edit link with ID '{}' due to database error!", link_id)
-                            ).to_json()
-                          ))
+                            );
+                          }
                         }
                     },
-                    Ok(_) => Err((
-                      Status::Unauthorized,
-                      responses::ResponseError::new(
-                        responses::ResponseErrorType::InvalidControlKeyError,
-                        format!("'{}' is not a valid control key for link with ID '{}'!",
-                          control_key,
-                          link_id
-                        )
-                      ).to_json()
-                    )),
-                    Err(_) => Err((
-                      Status::InternalServerError,
-                      responses::ResponseError::new(
-                        responses::ResponseErrorType::ControlKeyHashVerificationError,
+                    Ok(_) => {
+                      response_builder.error(
+                        Status::Unauthorized,
+                        ResponseErrorType::InvalidControlKeyError,
+                        format!("'{}' is not a valid control key for link with ID '{}'!", control_key, link_id)
+                      );
+                    },
+                    Err(_) => { 
+                      response_builder.error(
+                        Status::InternalServerError,
+                        ResponseErrorType::ControlKeyHashVerificationError,
                         String::from("Could not verify validity of control key!")
-                      ).to_json()
-                    ))
+                      );
+                    }
                   }
                 },
-                Ok(_) => Err((
-                  Status::NotFound,
-                  responses::ResponseError::new(
-                    responses::ResponseErrorType::LinkNotFoundError,
+                Ok(_) => {
+                  response_builder.error(
+                    Status::InternalServerError,
+                    ResponseErrorType::DatabaseError,
                     format!("Link with ID '{}' not found!", link_id)
-                  ).to_json()
-                )),
-                Err(_) => Err((
-                  Status::InternalServerError,
-                  responses::ResponseError::new(
-                    responses::ResponseErrorType::DatabaseError,
+                  );
+                },
+                Err(_) => { 
+                  response_builder.error(
+                    Status::InternalServerError,
+                    ResponseErrorType::DatabaseError,
                     format!("Could not verify the presence of link with ID '{}' in database!", link_id)
-                  ).to_json()
-                ))
+                  );
+                }
               },
-            Err(err) => Err(err)
+            Err(err) => {}
           },
-          Err(err) => Err(err)
+          Err(err) => {}
         }
       }
     }
   } else {
-    Err((
+    response_builder.error(
       Status::InternalServerError,
-      Json(responses::ResponseError::new(responses::ResponseErrorType::DatabaseError, "Could not get database pool!".into()))
-    ))
+      ResponseErrorType::DatabaseError,
+      String::from("Could not get database pool!")
+    );
   }
+
+  response_builder.build().json_respond()
 }

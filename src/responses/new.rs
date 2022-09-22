@@ -1,10 +1,10 @@
-use serde::{Serialize};
-use rocket::serde::json::{Json as JsonCons, Value};
+use serde::{Serialize, Serializer};
+use rocket::serde::json::{Json, Value};
 use rocket::http::Status;
 
 pub type ResponseResult<S> = (Status, S);
-pub type Json = JsonCons<Value>;
 pub type JsonErrorResponse<S> = Response<S, Value>;
+pub type EmptyResponse<E> = Response<(), E>;
 
 #[derive(Debug, Serialize, Clone)]
 #[serde(untagged)]
@@ -53,11 +53,11 @@ pub struct Response<S: Serialize, E: Serialize> {
 }
 
 impl<S: Serialize, E: Serialize> Response<S, E> {
-  pub fn json(self) -> JsonCons<Response<S, E>> {
-    JsonCons(self)
+  pub fn json(self) -> Json<Response<S, E>> {
+    Json(self)
   }
 
-  pub fn json_respond(self) -> (Status, JsonCons<Response<S, E>>) {
+  pub fn json_respond(self) -> (Status, Json<Response<S, E>>) {
     (self.status, self.json())
   }
 }
@@ -81,37 +81,45 @@ impl<S: Serialize, E: Serialize> ResponseBuilder<S, E> {
     }
   }
 
-  pub fn success(&mut self, status: Status) {
+  pub fn success(&mut self, status: Status) -> &mut Self {
     if status.code < 400 {
       self.status = status;
       self.error_type = None;
       self.error_message = None;
+
+      self
     } else {
       panic!("error status supplied to success response");
     }
   }
-  pub fn error(&mut self, status: Status, error_type: ResponseErrorType, error_message: String) {
+  pub fn error(&mut self, status: Status, error_type: ResponseErrorType, error_message: String) -> &mut Self {
     if status.code >= 400 {
       self.status = status;
       self.error_type = Some(error_type);
       self.error_message = Some(error_message);
+
+      self
     } else {
       panic!("info/status/redirect status supplied to error response");
     }
   }
 
-  pub fn data(&mut self, data: ResponseDataType<S>) {
+  pub fn data(&mut self, data: ResponseDataType<S>) -> &mut Self {
     self.data = Some(data);
+    self
   }
-  pub fn error_data(&mut self, data: ResponseDataType<E>) {
+  pub fn error_data(&mut self, data: ResponseDataType<E>) -> &mut Self {
     self.error_data = Some(data);
+    self
   }
 
-  pub fn clear_data(&mut self) {
+  pub fn clear_data(&mut self) -> &mut Self {
     self.data = None;
+    self
   }
-  pub fn clear_error_data(&mut self) {
+  pub fn clear_error_data(&mut self) -> &mut Self {
     self.error_data = None;
+    self
   }
 
   pub fn build(self) -> Response<S, E> {

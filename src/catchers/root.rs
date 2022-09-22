@@ -1,8 +1,7 @@
-//TODO: Replace all occurrences of old response system
 use rocket::{catch};
-use crate::responses::{ResponseError, ResponseErrorType, Error};
+use crate::responses;
 use chrono::Utc;
-use rocket::{State, Request, outcome::Outcome::*, http::{Header, Status}, Responder, serde::json::Json};
+use rocket::{State, Request, outcome::Outcome::*, http::{Header, Status}, Responder, serde::json::{Json, Value}};
 use crate::fairings::rate_limit::RateLimitState;
 use crate::config;
 use std::sync::Mutex;
@@ -13,16 +12,18 @@ pub struct RateLimitedWrappingResponder<'h, R> {
   retry_after: Header<'h>
 }
 
-//TODO: Add new responses
 #[catch(429)]
-pub async fn rate_limited<'a>(req: &Request<'_>) -> Result<RateLimitedWrappingResponder<'a, Error>, Error> {
-  let inner = (
+pub async fn rate_limited<'a>(req: &Request<'_>) -> Result<RateLimitedWrappingResponder<'a, responses::new::ResponseResult<Json<responses::new::JsonErrorResponse<()>>>>, responses::new::ResponseResult<Json<responses::new::JsonErrorResponse<()>>>> {
+  use responses::new::*;
+  let mut response_builder: ResponseBuilder<(), Value> = ResponseBuilder::new();
+
+  response_builder.error(
     Status::TooManyRequests,
-    Json(ResponseError::new(
-      ResponseErrorType::RateLimitedError,
-      "You have been rate limited!".into()
-    ))
+    ResponseErrorType::RateLimitedError,
+    String::from("You have been rate limited! Refer to 'Retry-After' header for cooldown duration.")
   );
+
+  let inner = response_builder.build().json_respond();
 
   match req.client_ip() {
     Some(ip) => {
@@ -76,26 +77,32 @@ pub async fn rate_limited<'a>(req: &Request<'_>) -> Result<RateLimitedWrappingRe
   // ));
 }
 
-//TODO: Add new responses
 #[catch(422)]
-pub fn invalid_request_data() -> Error {
-  (
+pub fn invalid_request_data() -> responses::new::ResponseResult<Json<responses::new::JsonErrorResponse<()>>> {
+  use responses::new::*;
+
+  let mut response_builder = ResponseBuilder::new();
+
+  response_builder.error(
     Status::UnprocessableEntity,
-    Json(ResponseError::new(
-      ResponseErrorType::ValidationError,
-      "Could not process request. Make sure your request body is of correct format.".into()
-    ))
-  )
+    ResponseErrorType::ValidationError,
+    String::from("Could not process request. Make sure your request body is of correct format.")
+  );
+
+  response_builder.build().json_respond()
 }
 
-//TODO: Add new responses
 #[catch(default)]
-pub fn default_catcher(status: Status, _req: &Request) -> Error {
-  (
+pub fn default_catcher(status: Status, _req: &Request) -> responses::new::ResponseResult<Json<responses::new::JsonErrorResponse<()>>> {
+  use responses::new::*;
+
+  let mut response_builder = ResponseBuilder::new();
+
+  response_builder.error(
     status,
-    Json(ResponseError::new(
-      ResponseErrorType::UndefinedError,
-      "Could not process request. Contact the administrator.".into()
-    ))
-  )
+    ResponseErrorType::UndefinedError,
+    String::from("Could not process request. Contact the administrator.")
+  );
+  
+  response_builder.build().json_respond()
 } 
