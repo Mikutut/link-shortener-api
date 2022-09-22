@@ -12,6 +12,48 @@ use url::{Url};
 use diesel::QueryDsl;
 use diesel::prelude::*;
 
+#[get("/check-id/<link_id>")]
+pub fn check_id(link_id: String, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> ResponseResult<Json<JsonErrorResponse<bool>>> {
+  let mut response_builder = ResponseBuilder::new();
+
+  match db.get() {
+    Ok(mut pool) => {
+      use crate::schema::links;
+      let conn = &mut *pool;
+
+      match links::table
+        .filter(links::link_id.eq(link_id.clone()))
+        .count()
+        .get_result::<i64>(conn) {
+          Ok(c) if c == 0 => {
+            response_builder.success(Status::Ok)
+              .data(ResponseDataType::Value(true));
+          },
+          Ok(_) => {
+            response_builder.success(Status::Ok)
+              .data(ResponseDataType::Value(false));
+          },
+          Err(_) => {
+            response_builder.error(
+              Status::InternalServerError,
+              ResponseErrorType::DatabaseError,
+              format!("Could not verify presence of link with ID '{}' in database!", link_id)
+            );
+          }
+        }
+    },
+    Err(_) => {
+      response_builder.error(
+        Status::InternalServerError,
+        ResponseErrorType::DatabaseError,
+        String::from("Could not get database pool!")
+      );
+    }
+  }
+
+  response_builder.build().json_respond()
+}
+
 #[get("/<link_id>")]
 pub fn access_link(link_id: String, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> Result<Redirect, ResponseResult<Json<JsonErrorResponse<()>>>> {
   let mut response_builder = ResponseBuilder::new();
