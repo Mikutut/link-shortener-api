@@ -27,6 +27,8 @@ Configuration is stored inside of `Config.toml` file. It follows the same rules 
 | `max_requests` | Specifies how many requests client can make in time window | `100` |
 | `max_requests_time_window` | Specifies the time window (in seconds) for rate limiter Defaults to | `10800` (3 hours) |
 | `base_url` | Specifies base URL returned when creating/editing link (link ID will be appended to it) | `http://localhost` |
+| `max_auto_id_length` | Specifies how long auto-generated link IDs can be | `6` |
+| `max_id_length` | Specifies how long link IDs provided by user can be (API does **NOT** check if this value is equal or not to link ID column in database!) | `255` |
 
 ---
 
