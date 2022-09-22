@@ -1,5 +1,5 @@
 use rocket::{catch};
-use crate::responses;
+use crate::responses::{ResponseResult, ResponseErrorType, ResponseBuilder, JsonErrorResponse};
 use chrono::Utc;
 use rocket::{State, Request, outcome::Outcome::*, http::{Header, Status}, Responder, serde::json::{Json, Value}};
 use crate::fairings::rate_limit::RateLimitState;
@@ -13,8 +13,7 @@ pub struct RateLimitedWrappingResponder<'h, R> {
 }
 
 #[catch(429)]
-pub async fn rate_limited<'a>(req: &Request<'_>) -> Result<RateLimitedWrappingResponder<'a, responses::new::ResponseResult<Json<responses::new::JsonErrorResponse<()>>>>, responses::new::ResponseResult<Json<responses::new::JsonErrorResponse<()>>>> {
-  use responses::new::*;
+pub async fn rate_limited<'a>(req: &Request<'_>) -> Result<RateLimitedWrappingResponder<'a, ResponseResult<Json<JsonErrorResponse<()>>>>, ResponseResult<Json<JsonErrorResponse<()>>>> {
   let mut response_builder: ResponseBuilder<(), Value> = ResponseBuilder::new();
 
   response_builder.error(
@@ -78,9 +77,7 @@ pub async fn rate_limited<'a>(req: &Request<'_>) -> Result<RateLimitedWrappingRe
 }
 
 #[catch(422)]
-pub fn invalid_request_data() -> responses::new::ResponseResult<Json<responses::new::JsonErrorResponse<()>>> {
-  use responses::new::*;
-
+pub fn invalid_request_data() -> ResponseResult<Json<JsonErrorResponse<()>>> {
   let mut response_builder = ResponseBuilder::new();
 
   response_builder.error(
@@ -93,9 +90,7 @@ pub fn invalid_request_data() -> responses::new::ResponseResult<Json<responses::
 }
 
 #[catch(default)]
-pub fn default_catcher(status: Status, _req: &Request) -> responses::new::ResponseResult<Json<responses::new::JsonErrorResponse<()>>> {
-  use responses::new::*;
-
+pub fn default_catcher(status: Status, _req: &Request) -> ResponseResult<Json<JsonErrorResponse<()>>> {
   let mut response_builder = ResponseBuilder::new();
 
   response_builder.error(

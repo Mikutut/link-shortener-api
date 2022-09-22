@@ -1,11 +1,11 @@
 use crate::models;
-use rocket::response::{Redirect, self};
+use rocket::response::{Redirect};
 use rocket::{self, get, post, delete, patch, State};
 use rocket::http::Status;
-use rocket::serde::{json::{Json, Value, json}};
+use rocket::serde::{json::{Json, Value}};
 use nanoid::{nanoid};
 use crate::fairings::database::Pool;
-use crate::{guards, responses};
+use crate::{guards, responses::*};
 use bcrypt;
 use url::{Url};
 
@@ -13,9 +13,8 @@ use diesel::QueryDsl;
 use diesel::prelude::*;
 
 #[get("/<link_id>")]
-pub fn access_link(link_id: String, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> Result<Redirect, responses::new::ResponseResult<Json<responses::new::JsonErrorResponse<()>>>> {
-  use responses::new::*;
-  let mut response_builder = responses::new::ResponseBuilder::new();
+pub fn access_link(link_id: String, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> Result<Redirect, ResponseResult<Json<JsonErrorResponse<()>>>> {
+  let mut response_builder = ResponseBuilder::new();
 
   match db.get() {
     Ok(mut pool) => {
@@ -61,9 +60,8 @@ pub fn access_link(link_id: String, db: &State<Pool>, _rl: guards::rate_limit::R
 }
 
 #[get("/get-links")]
-pub fn get_links(db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> responses::new::ResponseResult<Json<responses::new::JsonErrorResponse<Vec<models::db_less::GetLink>>>> {
-  use responses::new::*;
-  let mut response_builder = responses::new::ResponseBuilder::new();
+pub fn get_links(db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> ResponseResult<Json<JsonErrorResponse<Vec<models::db_less::GetLink>>>> {
+  let mut response_builder = ResponseBuilder::new();
 
   match db.get() {
     Ok(mut pool) => {
@@ -114,9 +112,7 @@ pub fn get_links(db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> respon
 
 //TODO: Handler generates new link ID even if one was provided with request
 #[post("/add-link", data = "<link>", rank = 1)]
-pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> responses::new::ResponseResult<Json<responses::new::JsonErrorResponse<models::db_less::NewLinkResult>>> {
-  use responses::new::*;
-
+pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> ResponseResult<Json<JsonErrorResponse<models::db_less::NewLinkResult>>> {
   let mut response_builder = ResponseBuilder::new();
 
   match db.get() {
@@ -209,8 +205,7 @@ pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, _rl: gua
 }
 
 #[delete("/delete-link", data = "<link>")]
-pub fn delete_link(link: Json<models::db_less::DeleteLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> responses::new::ResponseResult<Json<responses::new::JsonErrorResponse<()>>> {
-  use responses::new::*;
+pub fn delete_link(link: Json<models::db_less::DeleteLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> ResponseResult<Json<JsonErrorResponse<()>>> {
   let mut response_builder = ResponseBuilder::new();
 
   if let Ok(mut pool) = db.get() {
@@ -274,9 +269,8 @@ pub fn delete_link(link: Json<models::db_less::DeleteLink>, db: &State<Pool>, _r
 }
 
 #[patch("/edit-link", data = "<link>")]
-pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> responses::new::ResponseResult<Json<responses::new::JsonErrorResponse<models::db_less::EditLinkResult>>> {
+pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> ResponseResult<Json<JsonErrorResponse<models::db_less::EditLinkResult>>> {
   //Err(Custom(Status::ServiceUnavailable, "Not implemented"))
-  use responses::new::*;
   let mut response_builder: ResponseBuilder<models::db_less::EditLinkResult, Value> = ResponseBuilder::new();
 
   if let Ok(mut pool) = db.get() {
@@ -441,9 +435,9 @@ pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, _rl: g
                   );
                 }
               },
-            Err(err) => {}
+            Err(_) => {}
           },
-          Err(err) => {}
+          Err(_) => {}
         }
       }
     }
