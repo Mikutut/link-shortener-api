@@ -8,7 +8,8 @@ pub struct GetLink {
   #[serde(rename = "addedAt")]
   pub added_at: chrono::NaiveDateTime,
   #[serde(rename = "visitCount")]
-  pub visit_count: i32
+  pub visit_count: i32,
+  pub link: String
 }
 
 #[derive(Serialize, Deserialize)]
@@ -24,7 +25,8 @@ pub struct NewLinkResult {
   pub link_id: String,
   pub target: String,
   #[serde(rename = "controlKey")]
-  pub control_key: String
+  pub control_key: String,
+  pub link: String
 }
 
 #[derive(Serialize, Deserialize)]
@@ -42,7 +44,8 @@ pub struct EditLink {
 pub struct EditLinkResult {
   #[serde(rename = "linkId")]
   pub link_id: String,
-  pub target: String
+  pub target: String,
+  pub link: String
 }
 
 #[derive(Serialize, Deserialize)]

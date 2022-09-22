@@ -5,7 +5,7 @@ use rocket::http::Status;
 use rocket::serde::{json::{Json, Value}};
 use nanoid::{nanoid};
 use crate::fairings::database::Pool;
-use crate::{guards, responses::*};
+use crate::{guards, responses::*, config::Config};
 use bcrypt;
 use url::{Url};
 
@@ -60,7 +60,7 @@ pub fn access_link(link_id: String, db: &State<Pool>, _rl: guards::rate_limit::R
 }
 
 #[get("/get-links")]
-pub fn get_links(db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> ResponseResult<Json<JsonErrorResponse<Vec<models::db_less::GetLink>>>> {
+pub fn get_links(db: &State<Pool>, _rl: guards::rate_limit::RateLimit, config: &State<Config>) -> ResponseResult<Json<JsonErrorResponse<Vec<models::db_less::GetLink>>>> {
   let mut response_builder = ResponseBuilder::new();
 
   match db.get() {
@@ -68,6 +68,7 @@ pub fn get_links(db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> Respon
       use crate::schema::links;
 
       let conn = &mut *pool;
+      let base_url = config.base_url.clone();
 
       match links::table
         .order(links::added_at.desc())
@@ -80,7 +81,8 @@ pub fn get_links(db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> Respon
                     link_id: r.link_id.clone(),
                     target: r.target.clone(),
                     added_at: r.added_at.clone(),
-                    visit_count: r.visit_count.clone()
+                    visit_count: r.visit_count.clone(),
+                    link: format!("{}/{}", base_url, r.link_id.clone())
                   }
                 })
                 .collect()
@@ -112,7 +114,7 @@ pub fn get_links(db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> Respon
 
 //TODO: Handler generates new link ID even if one was provided with request
 #[post("/add-link", data = "<link>", rank = 1)]
-pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> ResponseResult<Json<JsonErrorResponse<models::db_less::NewLinkResult>>> {
+pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit, config: &State<Config>) -> ResponseResult<Json<JsonErrorResponse<models::db_less::NewLinkResult>>> {
   let mut response_builder = ResponseBuilder::new();
 
   match db.get() {
@@ -123,6 +125,7 @@ pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, _rl: gua
       let mut new_link_id = nanoid!(12);
       let new_control_key = nanoid!(24);
       let new_target = link.0.target;
+      let base_url = config.base_url.clone();
 
       match bcrypt::hash(new_control_key.clone(), bcrypt::DEFAULT_COST) {
         Ok(new_control_key_hash) => {
@@ -156,9 +159,10 @@ pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, _rl: gua
                 response_builder.success(Status::Ok);
                 response_builder.data(
                   ResponseDataType::Value(models::db_less::NewLinkResult {
-                    link_id: new_link.link_id,
+                    link_id: new_link.link_id.clone(),
                     target: new_link.target,
-                    control_key: new_control_key
+                    control_key: new_control_key,
+                    link: format!("{}/{}", base_url, new_link.link_id)
                   })
                 );              
               } else {
@@ -269,7 +273,7 @@ pub fn delete_link(link: Json<models::db_less::DeleteLink>, db: &State<Pool>, _r
 }
 
 #[patch("/edit-link", data = "<link>")]
-pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> ResponseResult<Json<JsonErrorResponse<models::db_less::EditLinkResult>>> {
+pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit, config: &State<Config>) -> ResponseResult<Json<JsonErrorResponse<models::db_less::EditLinkResult>>> {
   //Err(Custom(Status::ServiceUnavailable, "Not implemented"))
   let mut response_builder: ResponseBuilder<models::db_less::EditLinkResult, Value> = ResponseBuilder::new();
 
@@ -280,6 +284,7 @@ pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, _rl: g
     let control_key = link.control_key.clone();
     let target = link.target.clone();
     let new_link_id = link.new_link_id.clone();
+    let base_url = config.base_url.clone();
 
     match (new_link_id.clone(), target.clone()) {
       (None, None) => {
@@ -391,8 +396,9 @@ pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, _rl: g
                           Ok(_) => { 
                             response_builder.success(Status::Ok)
                               .data(ResponseDataType::Value(models::db_less::EditLinkResult {
-                                link_id: new_id,
-                                target: target_str
+                                link_id: new_id.clone(),
+                                target: target_str,
+                                link: format!("{}/{}", base_url, new_id)
                               }));
                           },
                           Err(_) => { 
