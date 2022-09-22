@@ -21,11 +21,12 @@ Configuration is stored inside of `Config.toml` file. It follows the same rules 
 
 ### Configuration keys
 
-| Key | Description |
-| :---: | :---:
-| `database_url` | Specifies URL used by diesel/r2d2 for connection to MySQL database |
-| `max_requests` | Specifies how many requests client can make in time window |
-| `max_requests_time_window` | Specifies the time window (in seconds) for rate limiter |
+| Key | Description | Default |
+| :---: | :---: | :---: |
+| `database_url` | Specifies URL used by diesel/r2d2 for connection to MySQL database | `mysql://root:root@localhost:3306/link_shortener` |
+| `max_requests` | Specifies how many requests client can make in time window | `100` |
+| `max_requests_time_window` | Specifies the time window (in seconds) for rate limiter Defaults to | `10800` (3 hours) |
+| `base_url` | Specifies base URL returned when creating/editing link (link ID will be appended to it) | `http://localhost` |
 
 ---
 
@@ -57,5 +58,7 @@ Sometimes, API may return an error. In that case, response will include appropri
 | `EditLinkError` | Loosely specified error regarding editing link. Refer to error message for more information. |
 | `DeleteLinkError` | Loosely specified error regarding deleting link. Refer to error message for more information. |
 | `UndefinedError` | Server has thrown an error that did not fit into any of the aforementioned types. Refer to error message for more information. |
+
+---
 
 ### [Mikut](https://mikut.dev) 2020-2022
