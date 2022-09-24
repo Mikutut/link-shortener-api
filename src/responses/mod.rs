@@ -2,6 +2,8 @@ use serde::{Serialize};
 use rocket::serde::json::{Json, Value};
 use rocket::http::Status;
 
+pub mod errors;
+
 pub type ResponseResult<S> = (Status, S);
 pub type JsonErrorResponse<S> = Response<S, Value>;
 pub type EmptyResponse<E> = Response<(), E>;
