@@ -22,8 +22,8 @@ fn rocket() -> _ {
       routes::get_check_id
     ])
     .register("/", catchers![
-      catchers::root::invalid_request_data,
-      catchers::root::rate_limited,
-      catchers::root::default_catcher
+      catchers::invalid_request_data,
+      catchers::rate_limited,
+      catchers::default_catcher
     ])
 }
