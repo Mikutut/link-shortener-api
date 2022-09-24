@@ -42,11 +42,7 @@ pub fn check_id(link_id: String, db: &State<Pool>) -> ResponseBuilder<bool, Json
         }
     },
     Err(_) => {
-      response_builder.error(
-        Status::InternalServerError,
-        ResponseErrorType::DatabaseError,
-        String::from("Could not get database pool!")
-      );
+      errors::AdHocErrors::database_pool(&mut response_builder);
     }
   }
 
@@ -74,11 +70,7 @@ pub fn access_link(link_id: String, db: &State<Pool>) -> ResponseBuilder<String,
             response_builder.data(target);
           },
           Ok(_) => {
-            response_builder.error(
-              Status::NotFound,
-              ResponseErrorType::LinkNotFoundError,
-              format!("Link with ID '{}' not found!", link_id)
-            );
+            errors::AdHocErrors::link_id_not_found(&mut response_builder, &link_id);
           },
           Err(_) => {
             response_builder.error(
@@ -90,11 +82,7 @@ pub fn access_link(link_id: String, db: &State<Pool>) -> ResponseBuilder<String,
         }
     },
     Err(_) => {
-      response_builder.error(
-        Status::InternalServerError,
-        ResponseErrorType::DatabaseError,
-        String::from("Could not get database pool!")
-      );
+      errors::AdHocErrors::database_pool(&mut response_builder);
     }
   }
 
@@ -140,11 +128,7 @@ pub fn get_links(db: &State<Pool>, config: &State<Config>) -> ResponseBuilder<Ve
         }
     },
     Err(_) => {
-      response_builder.error(
-        Status::InternalServerError, 
-        ResponseErrorType::DatabaseError, 
-        "Could not get database pool!".into()
-      );
+      errors::AdHocErrors::database_pool(&mut response_builder);
     }
   }
 
@@ -269,11 +253,7 @@ pub fn add_link(link: &models::db_less::NewLink, db: &State<Pool>, config: &Stat
                       }
                     },
                     Err(_) => {
-                    response_builder.error(
-                      Status::BadRequest,
-                      ResponseErrorType::ValidationError,
-                      format!("'{}' is not a valid URL!", new_target.clone())
-                    );
+                    errors::AdHocErrors::target_invalid(&mut response_builder, &new_target);
                   }
                 }
               },
@@ -297,11 +277,7 @@ pub fn add_link(link: &models::db_less::NewLink, db: &State<Pool>, config: &Stat
       }
     },
     Err(_) => {
-      response_builder.error(
-        Status::InternalServerError, 
-        ResponseErrorType::DatabaseError, 
-        String::from("Could not get database pool!")
-      );
+      errors::AdHocErrors::database_pool(&mut response_builder);
     }
   }
 
@@ -344,28 +320,16 @@ pub fn delete_link(link: Json<models::db_less::DeleteLink>, db: &State<Pool>) ->
                 }
             },
             _ => {
-              response_builder.error(
-                Status::Unauthorized,
-                ResponseErrorType::InvalidControlKeyError,
-                format!("'{}' is not a valid control key for '{}' link!", control_key, link_id)
-              );
+              errors::AdHocErrors::invalid_control_key(&mut response_builder, &control_key, &link_id);
             }
           }
         },
         _ => {
-          response_builder.error(
-            Status::NotFound, 
-            ResponseErrorType::LinkNotFoundError, 
-            format!("Link with ID \"{}\" not found", link_id)
-          );
+          errors::AdHocErrors::link_id_not_found(&mut response_builder, &link_id);
         }
       }
   } else {
-    response_builder.error(
-      Status::InternalServerError, 
-      ResponseErrorType::DatabaseError, 
-      String::from("Could not get databse pool!")
-    );
+    errors::AdHocErrors::database_pool(&mut response_builder);
   }
 
   response_builder
@@ -443,11 +407,7 @@ pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, config
           match Url::parse(&target_str) {
             Ok(_) => Ok(target_str),
             Err(_) => { 
-              response_builder.error(
-                Status::BadRequest,
-                ResponseErrorType::ValidationError,
-                format!("'{}' is not a valid URL!", target_str.clone())
-              );
+              errors::AdHocErrors::target_invalid(&mut response_builder, &target_str);
               Err(())
             }
           }
@@ -458,11 +418,7 @@ pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, config
             .load::<String>(conn) {
               Ok(value) if value.len() > 0 => Ok(value[0].clone()),
               Ok(_) => {
-                response_builder.error(
-                  Status::InternalServerError,
-                  ResponseErrorType::LinkNotFoundError,
-                  format!("Link with ID '{}' not found!", link_id.clone())
-                );
+                errors::AdHocErrors::link_id_not_found(&mut response_builder, &link_id);
                 Err(())
               },
               Err(_) => { 
@@ -511,11 +467,7 @@ pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, config
                         }
                     },
                     Ok(_) => {
-                      response_builder.error(
-                        Status::Unauthorized,
-                        ResponseErrorType::InvalidControlKeyError,
-                        format!("'{}' is not a valid control key for link with ID '{}'!", control_key, link_id)
-                      );
+                      errors::AdHocErrors::invalid_control_key(&mut response_builder, &control_key, &link_id);
                     },
                     Err(_) => { 
                       response_builder.error(
@@ -527,11 +479,7 @@ pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, config
                   }
                 },
                 Ok(_) => {
-                  response_builder.error(
-                    Status::InternalServerError,
-                    ResponseErrorType::DatabaseError,
-                    format!("Link with ID '{}' not found!", link_id)
-                  );
+                  errors::AdHocErrors::link_id_not_found(&mut response_builder, &link_id);
                 },
                 Err(_) => { 
                   response_builder.error(
@@ -548,11 +496,7 @@ pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, config
       }
     }
   } else {
-    response_builder.error(
-      Status::InternalServerError,
-      ResponseErrorType::DatabaseError,
-      String::from("Could not get database pool!")
-    );
+    errors::AdHocErrors::database_pool(&mut response_builder);
   }
 
   response_builder
