@@ -19,6 +19,21 @@ pub enum ResponseDataType<S: Serialize> {
   Value(S)
 }
 
+impl<S: Serialize> ResponseDataType<S> {
+  pub fn extract_value(&self) -> Option<&S> {
+    match self {
+      ResponseDataType::Message(_) => None,
+      ResponseDataType::Value(v) => Some(v)
+    }
+  }
+  pub fn extract_message(&self) -> Option<&String> {
+    match self {
+      ResponseDataType::Message(msg) => Some(msg),
+      ResponseDataType::Value(_) => None
+    }
+  }
+}
+
 #[derive(Debug, Serialize, Clone)]
 pub enum ResponseErrorType {
   ValidationError,
