@@ -1,7 +1,6 @@
 use chrono::Utc;
 use rocket::{request::{FromRequest, Outcome, Request}, http::Status, State};
 use crate::{fairings::rate_limit, config};
-use std::sync::Mutex;
 
 #[derive(Debug)]
 pub enum RateLimit {
@@ -17,7 +16,7 @@ impl<'r> FromRequest<'r> for RateLimit {
     //Outcome::Failure((Status::ServiceUnavailable, RateLimit::Rejected(i64::MAX)))
     match req.guard::<&State<config::Config>>().await {
       Outcome::Success(config) => {
-        match req.guard::<&State<Mutex<rate_limit::RateLimitState>>>().await {
+        match req.guard::<&State<rate_limit::RateLimitState>>().await {
           Outcome::Success(state) => {
             let max_requests: i64 = config.max_requests.clone();
             let time_window: i64 = config.max_requests_time_window.clone();

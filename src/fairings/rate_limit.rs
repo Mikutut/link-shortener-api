@@ -4,7 +4,7 @@ use rocket::{fairing::{self, Fairing, Result}, Rocket, Build, Request, Data, Sta
 use std::sync::Mutex;
 use crate::config;
 
-pub type RateLimitState = HashMap<IpAddr, (i64, NaiveDateTime)>;
+pub type RateLimitState = Mutex<HashMap<IpAddr, (i64, NaiveDateTime)>>;
 
 pub struct RateLimit;
 
@@ -18,7 +18,7 @@ impl Fairing for RateLimit {
   }
 
   async fn on_ignite(&self, rocket: Rocket<Build>) -> Result {
-    let state: Mutex<RateLimitState> = Mutex::new(HashMap::new());
+    let state: RateLimitState = Mutex::new(HashMap::new());
 
     Ok(rocket.manage(state))
   }
@@ -26,7 +26,7 @@ impl Fairing for RateLimit {
   async fn on_request(&self, req: &mut Request<'_>, _: &mut Data<'_>) {
     match req.guard::<&State<config::Config>>().await {
       Outcome::Success(config) => {
-        match req.guard::<&State<Mutex<RateLimitState>>>().await {
+        match req.guard::<&State<RateLimitState>>().await {
           Outcome::Success(state) => {
             let time_window = config.max_requests_time_window.clone();
             let max_requests = config.max_requests.clone();

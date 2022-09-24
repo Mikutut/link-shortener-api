@@ -4,7 +4,6 @@ use chrono::Utc;
 use rocket::{State, Request, outcome::Outcome::*, http::{Header, Status}, Responder, serde::json::{Json, Value}};
 use crate::fairings::rate_limit::RateLimitState;
 use crate::config;
-use std::sync::Mutex;
 
 #[derive(Responder)]
 pub struct RateLimitedWrappingResponder<'h, R> {
@@ -28,7 +27,7 @@ pub async fn rate_limited<'a>(req: &Request<'_>) -> Result<RateLimitedWrappingRe
     Some(ip) => {
       match req.guard::<&State<config::Config>>().await {
         Success(config) => {
-          match req.guard::<&State<Mutex<RateLimitState>>>().await {
+          match req.guard::<&State<RateLimitState>>().await {
             Success(state) => {
               match state.lock() {
                 Ok(lock) => {
