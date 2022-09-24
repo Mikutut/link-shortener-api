@@ -66,8 +66,6 @@ pub fn add_link(links: Json<Vec<models::db_less::NewLink>>, db: &State<Pool>, co
         if ResponseBuilder::is_success(&res_builder) {
           let data = res_builder
             .get_data()
-            .unwrap()
-            .extract_value()
             .unwrap();
 
           results.push(data.clone());
@@ -88,8 +86,8 @@ pub fn add_link(links: Json<Vec<models::db_less::NewLink>>, db: &State<Pool>, co
               String::from("Some requests have been successfully fulfilled but an error happened inside one of them!")
             }
           )
-            .data(ResponseDataType::Value(results.clone()))
-            .error_data(ResponseDataType::Value(bulk_request_error.to_json().unwrap()));
+            .data(results.clone())
+            .error_data(bulk_request_error.to_json().unwrap());
           last_error = true;
           break;
         }
@@ -99,7 +97,7 @@ pub fn add_link(links: Json<Vec<models::db_less::NewLink>>, db: &State<Pool>, co
         response_builder.success(
           Status::Ok
         )
-          .data(ResponseDataType::Value(results));
+          .data(results);
       }
     },
     Err(_) => {} 

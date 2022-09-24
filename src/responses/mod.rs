@@ -16,28 +16,6 @@ enum ResponseStatusType {
 }
 
 #[derive(Debug, Serialize, Clone)]
-#[serde(untagged)]
-pub enum ResponseDataType<S: Serialize> {
-  Message(String),
-  Value(S)
-}
-
-impl<S: Serialize> ResponseDataType<S> {
-  pub fn extract_value(&self) -> Option<&S> {
-    match self {
-      ResponseDataType::Message(_) => None,
-      ResponseDataType::Value(v) => Some(v)
-    }
-  }
-  pub fn extract_message(&self) -> Option<&String> {
-    match self {
-      ResponseDataType::Message(msg) => Some(msg),
-      ResponseDataType::Value(_) => None
-    }
-  }
-}
-
-#[derive(Debug, Serialize, Clone)]
 pub enum ResponseErrorType {
   ValidationError,
   DatabaseError,
@@ -74,10 +52,10 @@ pub struct Response<S: Serialize, E: Serialize> {
   #[serde(skip_serializing_if = "Option::is_none")]
   error_message: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
-  data: Option<ResponseDataType<S>>,
+  data: Option<S>,
   #[serde(rename = "errorData")]
   #[serde(skip_serializing_if = "Option::is_none")]
-  error_data: Option<ResponseDataType<E>>
+  error_data: Option<E>
 }
 
 impl<S: Serialize, E: Serialize> Response<S, E> {
@@ -108,8 +86,8 @@ pub struct ResponseBuilder<S: Serialize, E: Serialize> {
   status_type: ResponseStatusType,
   error_type: Option<ResponseErrorType>,
   error_message: Option<String>,
-  data: Option<ResponseDataType<S>>,
-  error_data: Option<ResponseDataType<E>>
+  data: Option<S>,
+  error_data: Option<E>
 }
 
 impl<S: Serialize, E: Serialize> ResponseBuilder<S, E> {
@@ -159,16 +137,16 @@ impl<S: Serialize, E: Serialize> ResponseBuilder<S, E> {
     self.error_message.clone()
   }
 
-  pub fn data(&mut self, data: ResponseDataType<S>) -> &mut Self {
+  pub fn data(&mut self, data: S) -> &mut Self {
     self.data = Some(data);
     self
   }
-  pub fn error_data(&mut self, data: ResponseDataType<E>) -> &mut Self {
+  pub fn error_data(&mut self, data: E) -> &mut Self {
     self.error_data = Some(data);
     self
   }
 
-  pub fn get_data(&self) -> Option<&ResponseDataType<S>> {
+  pub fn get_data(&self) -> Option<&S> {
     self.data.as_ref()
   }
   pub fn clear_data(&mut self) -> &mut Self {
@@ -176,7 +154,7 @@ impl<S: Serialize, E: Serialize> ResponseBuilder<S, E> {
     self
   }
 
-  pub fn get_error_data(&self) -> Option<&ResponseDataType<E>> {
+  pub fn get_error_data(&self) -> Option<&E> {
     self.error_data.as_ref()
   }
   pub fn clear_error_data(&mut self) -> &mut Self {

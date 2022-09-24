@@ -20,8 +20,6 @@ pub fn get_access_link(link_id: String, db: &State<Pool>, _rl: guards::rate_limi
     let data = res_builder.get_data().clone();
     let target = data
       .unwrap()
-      .extract_value()
-      .unwrap()
       .clone();
 
     Ok(Redirect::temporary(target))

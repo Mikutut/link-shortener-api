@@ -26,11 +26,11 @@ pub fn check_id(link_id: String, db: &State<Pool>) -> ResponseBuilder<bool, Valu
         .get_result::<i64>(conn) {
           Ok(c) if c == 0 => {
             response_builder.success(Status::Ok)
-              .data(ResponseDataType::Value(true));
+              .data(true);
           },
           Ok(_) => {
             response_builder.success(Status::Ok)
-              .data(ResponseDataType::Value(false));
+              .data(false);
           },
           Err(_) => {
             response_builder.error(
@@ -71,7 +71,7 @@ pub fn access_link(link_id: String, db: &State<Pool>) -> ResponseBuilder<String,
 
             //return Ok(Redirect::temporary(target));
             response_builder.success(Status::Ok);
-            response_builder.data(ResponseDataType::Value(target));
+            response_builder.data(target);
           },
           Ok(_) => {
             response_builder.error(
@@ -115,19 +115,17 @@ pub fn get_links(db: &State<Pool>, config: &State<Config>) -> ResponseBuilder<Ve
         .order(links::added_at.desc())
         .load::<models::Link>(conn) {
           Ok(links) => {
-            let data = ResponseDataType::Value(
-              links.iter()
-                .map(|r| {
-                  models::db_less::GetLink {
-                    link_id: r.link_id.clone(),
-                    target: r.target.clone(),
-                    added_at: r.added_at.clone(),
-                    visit_count: r.visit_count.clone(),
-                    link: format!("{}/{}", base_url, r.link_id.clone())
-                  }
-                })
-                .collect()
-            );
+            let data = links.iter()
+              .map(|r| {
+                models::db_less::GetLink {
+                  link_id: r.link_id.clone(),
+                  target: r.target.clone(),
+                  added_at: r.added_at.clone(),
+                  visit_count: r.visit_count.clone(),
+                  link: format!("{}/{}", base_url, r.link_id.clone())
+                }
+              })
+              .collect();
 
             response_builder.success(Status::Ok);
             response_builder.data(data);
@@ -249,14 +247,12 @@ pub fn add_link(link: &models::db_less::NewLink, db: &State<Pool>, config: &Stat
                           let new_link = new_link[0].clone();
 
                           response_builder.success(Status::Ok);
-                          response_builder.data(
-                            ResponseDataType::Value(models::db_less::NewLinkResult {
-                              link_id: new_link.link_id.clone(),
-                              target: new_link.target,
-                              control_key: new_control_key,
-                              link: format!("{}/{}", base_url, new_link.link_id)
-                            })
-                          );              
+                          response_builder.data(models::db_less::NewLinkResult {
+                            link_id: new_link.link_id.clone(),
+                            target: new_link.target,
+                            control_key: new_control_key,
+                            link: format!("{}/{}", base_url, new_link.link_id)
+                          });              
                         } else {
                           response_builder.error(
                             Status::InternalServerError,
@@ -499,11 +495,11 @@ pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, config
                         .execute(conn) {
                           Ok(_) => { 
                             response_builder.success(Status::Ok)
-                              .data(ResponseDataType::Value(models::db_less::EditLinkResult {
+                              .data(models::db_less::EditLinkResult {
                                 link_id: new_id.clone(),
                                 target: target_str,
                                 link: format!("{}/{}", base_url, new_id)
-                              }));
+                              });
                           },
                           Err(_) => { 
                             response_builder.error(
