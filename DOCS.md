@@ -49,6 +49,7 @@ Sometimes, API may return an error. In that case, response will include appropri
 | `ControlKeyHashGenerationError` | Server could not generate bcrypt hash of new control key. |
 | `ControlKeyHashVerificationError` | Server could not verify bcrypt hash acquired from database. |
 | `BulkRequestExceedingSizeError` | Size of bulk request's data is greater than rate limit. |
+| `BulkRequestError` | An error happened inside of one of bulk request's internal request. |
 | `GetLinksError` | Loosely specified error regarding getting list of links. Refer to error message for more information. |
 | `AccessLinkError` | Loosely specified error regarding accessing link. Refer to error message for more information. |
 | `AddLinkError` | Loosely specified error regarding adding link. Refer to error message for more information. |

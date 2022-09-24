@@ -1,7 +1,8 @@
 use serde::{Serialize};
-use rocket::serde::json::{Json, Value};
+use rocket::serde::json::{self, Json, Value};
 use rocket::http::Status;
 
+pub mod successes;
 pub mod errors;
 
 pub type ResponseResult<S> = (Status, S);
@@ -46,6 +47,8 @@ pub enum ResponseErrorType {
   LinkNotFoundError,
   ControlKeyHashGenerationError,
   ControlKeyHashVerificationError,
+  BulkRequestExceedingSizeError,
+  BulkRequestError,
   GetLinksError,
   AccessLinkError,
   AddLinkError,
@@ -146,6 +149,16 @@ impl<S: Serialize, E: Serialize> ResponseBuilder<S, E> {
     }
   }
 
+  pub fn get_status(&self) -> Status {
+    self.status
+  }
+  pub fn get_error_type(&self) -> Option<ResponseErrorType> {
+    self.error_type.clone()
+  }
+  pub fn get_error_message(&self) -> Option<String> {
+    self.error_message.clone()
+  }
+
   pub fn data(&mut self, data: ResponseDataType<S>) -> &mut Self {
     self.data = Some(data);
     self
@@ -155,16 +168,16 @@ impl<S: Serialize, E: Serialize> ResponseBuilder<S, E> {
     self
   }
 
-  pub fn get_data(&self) -> &Option<ResponseDataType<S>> {
-    &self.data
+  pub fn get_data(&self) -> Option<&ResponseDataType<S>> {
+    self.data.as_ref()
   }
   pub fn clear_data(&mut self) -> &mut Self {
     self.data = None;
     self
   }
 
-  pub fn get_error_data(&self) -> &Option<ResponseDataType<E>> {
-    &self.error_data
+  pub fn get_error_data(&self) -> Option<&ResponseDataType<E>> {
+    self.error_data.as_ref()
   }
   pub fn clear_error_data(&mut self) -> &mut Self {
     self.error_data = None;
@@ -198,5 +211,15 @@ impl<S: Serialize, E: Serialize> ResponseBuilder<S, E> {
       ResponseStatusType::Success => false,
       ResponseStatusType::Error => true
     }
+  }
+}
+
+pub trait ToJson {
+  fn to_json(self) -> Result<Value, serde_json::error::Error>;
+}
+
+impl<S: Serialize> ToJson for S {
+  fn to_json(self) -> Result<Value, serde_json::error::Error> {
+    json::to_value(self)
   }
 }
