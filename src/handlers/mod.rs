@@ -1,4 +1,4 @@
-use rocket::{serde::json::{Json, Value}, State, response::{Redirect}};
+use rocket::{serde::json::{Json, Value}, State};
 use crate::responses::*;
 use crate::models;
 //use crate::guards;
@@ -10,7 +10,7 @@ use nanoid::{nanoid};
 use rocket::http::Status;
 use diesel::prelude::*;
 
-pub fn check_id(link_id: String, db: &State<Pool>) -> ResponseResult<Json<JsonErrorResponse<bool>>> {
+pub fn check_id(link_id: String, db: &State<Pool>) -> ResponseBuilder<bool, Value> {
   let mut response_builder = ResponseBuilder::new();
 
   match db.get() {
@@ -48,11 +48,11 @@ pub fn check_id(link_id: String, db: &State<Pool>) -> ResponseResult<Json<JsonEr
     }
   }
 
-  response_builder.build().json_respond()
+  response_builder
 }
 
-pub fn access_link(link_id: String, db: &State<Pool>) -> Result<Redirect, ResponseResult<Json<JsonErrorResponse<()>>>> {
-  let mut response_builder = ResponseBuilder::new();
+pub fn access_link(link_id: String, db: &State<Pool>) -> ResponseBuilder<String, Value> {
+  let mut response_builder: ResponseBuilder<String, Value> = ResponseBuilder::new();
 
   match db.get() {
     Ok(mut pool) => {
@@ -67,7 +67,9 @@ pub fn access_link(link_id: String, db: &State<Pool>) -> Result<Redirect, Respon
           Ok(link) if link.len() > 0 => {
             let target = link[0].clone().target;
 
-            return Ok(Redirect::temporary(target));
+            //return Ok(Redirect::temporary(target));
+            response_builder.success(Status::Ok);
+            response_builder.data(ResponseDataType::Value(target));
           },
           Ok(_) => {
             response_builder.error(
@@ -94,10 +96,10 @@ pub fn access_link(link_id: String, db: &State<Pool>) -> Result<Redirect, Respon
     }
   }
 
-  Err(response_builder.build().json_respond())
+  response_builder
 }
 
-pub fn get_links(db: &State<Pool>, config: &State<Config>) -> ResponseResult<Json<JsonErrorResponse<Vec<models::db_less::GetLink>>>> {
+pub fn get_links(db: &State<Pool>, config: &State<Config>) -> ResponseBuilder<Vec<models::db_less::GetLink>, Value> {
   let mut response_builder = ResponseBuilder::new();
 
   match db.get() {
@@ -146,10 +148,10 @@ pub fn get_links(db: &State<Pool>, config: &State<Config>) -> ResponseResult<Jso
     }
   }
 
-  response_builder.build().json_respond()
+  response_builder
 }
 
-pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, config: &State<Config>) -> ResponseResult<Json<JsonErrorResponse<models::db_less::NewLinkResult>>> {
+pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, config: &State<Config>) -> ResponseBuilder<models::db_less::NewLinkResult, Value> {
   let mut response_builder = ResponseBuilder::new();
 
   match db.get() {
@@ -305,10 +307,10 @@ pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, config: 
     }
   }
 
-  response_builder.build().json_respond()
+  response_builder
 }
 
-pub fn delete_link(link: Json<models::db_less::DeleteLink>, db: &State<Pool>) -> ResponseResult<Json<JsonErrorResponse<()>>> {
+pub fn delete_link(link: Json<models::db_less::DeleteLink>, db: &State<Pool>) -> ResponseBuilder<(), Value> {
   let mut response_builder = ResponseBuilder::new();
 
   if let Ok(mut pool) = db.get() {
@@ -368,10 +370,10 @@ pub fn delete_link(link: Json<models::db_less::DeleteLink>, db: &State<Pool>) ->
     );
   }
 
-  response_builder.build().json_respond()
+  response_builder
 }
 
-pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, config: &State<Config>) -> ResponseResult<Json<JsonErrorResponse<models::db_less::EditLinkResult>>> {
+pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, config: &State<Config>) -> ResponseBuilder<models::db_less::EditLinkResult, Value> {
   //Err(Custom(Status::ServiceUnavailable, "Not implemented"))
   let mut response_builder: ResponseBuilder<models::db_less::EditLinkResult, Value> = ResponseBuilder::new();
 
@@ -555,5 +557,5 @@ pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, config
     );
   }
 
-  response_builder.build().json_respond()
+  response_builder
 }
