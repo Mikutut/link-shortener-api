@@ -41,12 +41,12 @@ pub fn get_get_links(db: &State<Pool>, _rl: guards::rate_limit::RateLimit, confi
 
 #[post("/add-link", data = "<link>")]
 pub fn post_add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit, config: &State<Config>) -> ResponseResult<Json<JsonErrorResponse<models::db_less::NewLinkResult>>> {
-  handlers::add_link(link, db, config).build().json_respond()
+  handlers::add_link(&link.into_inner(), db, config).build().json_respond()
 }
 
 #[put("/add-link", data = "<link>")]
 pub fn put_add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit, config: &State<Config>) -> ResponseResult<Json<JsonErrorResponse<models::db_less::NewLinkResult>>> {
-  handlers::add_link(link, db, config).build().json_respond()
+  handlers::add_link(&link.into_inner(), db, config).build().json_respond()
 }
 
 #[delete("/delete-link", data = "<link>")]
