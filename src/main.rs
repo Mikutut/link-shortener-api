@@ -26,4 +26,8 @@ fn rocket() -> _ {
       catchers::rate_limited,
       catchers::default_catcher
     ])
+    .mount("/bulk", routes![
+      routes::bulk::put_add_link,
+      routes::bulk::post_add_link
+    ])
 }
