@@ -1,4 +1,4 @@
-use rocket::{serde::json::{Json, Value}, State};
+use rocket::{serde::json::{Json, Value as JsonValue}, State};
 use crate::responses::*;
 use crate::models;
 //use crate::guards;
@@ -12,7 +12,7 @@ use diesel::prelude::*;
 
 pub mod bulk;
 
-pub fn check_id(link_id: String, db: &State<Pool>) -> ResponseBuilder<bool, Value> {
+pub fn check_id(link_id: String, db: &State<Pool>) -> ResponseBuilder<bool, JsonValue> {
   let mut response_builder = ResponseBuilder::new();
 
   match db.get() {
@@ -53,8 +53,8 @@ pub fn check_id(link_id: String, db: &State<Pool>) -> ResponseBuilder<bool, Valu
   response_builder
 }
 
-pub fn access_link(link_id: String, db: &State<Pool>) -> ResponseBuilder<String, Value> {
-  let mut response_builder: ResponseBuilder<String, Value> = ResponseBuilder::new();
+pub fn access_link(link_id: String, db: &State<Pool>) -> ResponseBuilder<String, JsonValue> {
+  let mut response_builder: ResponseBuilder<String, JsonValue> = ResponseBuilder::new();
 
   match db.get() {
     Ok(mut pool) => {
@@ -101,7 +101,7 @@ pub fn access_link(link_id: String, db: &State<Pool>) -> ResponseBuilder<String,
   response_builder
 }
 
-pub fn get_links(db: &State<Pool>, config: &State<Config>) -> ResponseBuilder<Vec<models::db_less::GetLink>, Value> {
+pub fn get_links(db: &State<Pool>, config: &State<Config>) -> ResponseBuilder<Vec<models::db_less::GetLink>, JsonValue> {
   let mut response_builder = ResponseBuilder::new();
 
   match db.get() {
@@ -151,7 +151,7 @@ pub fn get_links(db: &State<Pool>, config: &State<Config>) -> ResponseBuilder<Ve
   response_builder
 }
 
-pub fn add_link(link: &models::db_less::NewLink, db: &State<Pool>, config: &State<Config>) -> ResponseBuilder<models::db_less::NewLinkResult, Value> {
+pub fn add_link(link: &models::db_less::NewLink, db: &State<Pool>, config: &State<Config>) -> ResponseBuilder<models::db_less::NewLinkResult, JsonValue> {
   let mut response_builder = ResponseBuilder::new();
 
   match db.get() {
@@ -308,7 +308,7 @@ pub fn add_link(link: &models::db_less::NewLink, db: &State<Pool>, config: &Stat
   response_builder
 }
 
-pub fn delete_link(link: Json<models::db_less::DeleteLink>, db: &State<Pool>) -> ResponseBuilder<(), Value> {
+pub fn delete_link(link: Json<models::db_less::DeleteLink>, db: &State<Pool>) -> ResponseBuilder<(), JsonValue> {
   let mut response_builder = ResponseBuilder::new();
 
   if let Ok(mut pool) = db.get() {
@@ -371,9 +371,9 @@ pub fn delete_link(link: Json<models::db_less::DeleteLink>, db: &State<Pool>) ->
   response_builder
 }
 
-pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, config: &State<Config>) -> ResponseBuilder<models::db_less::EditLinkResult, Value> {
+pub fn edit_link(link: Json<models::db_less::EditLink>, db: &State<Pool>, config: &State<Config>) -> ResponseBuilder<models::db_less::EditLinkResult, JsonValue> {
   //Err(Custom(Status::ServiceUnavailable, "Not implemented"))
-  let mut response_builder: ResponseBuilder<models::db_less::EditLinkResult, Value> = ResponseBuilder::new();
+  let mut response_builder: ResponseBuilder<models::db_less::EditLinkResult, JsonValue> = ResponseBuilder::new();
 
   if let Ok(mut pool) = db.get() {
     let conn = &mut *pool;

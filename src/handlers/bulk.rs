@@ -1,6 +1,6 @@
 use std::net::IpAddr;
 use serde::{Serialize};
-use rocket::serde::json::{self, Json, Value};
+use rocket::serde::json::{Json, Value as JsonValue};
 use rocket::http::Status;
 use rocket::State;
 use std::net::SocketAddr;
@@ -47,7 +47,7 @@ pub mod utils {
   }
 }
 
-pub fn add_link(links: Json<Vec<models::db_less::NewLink>>, db: &State<Pool>, config: &State<Config>, rl: &State<RateLimitState>, ip: SocketAddr) -> ResponseBuilder<Vec<models::db_less::NewLinkResult>, Value> {
+pub fn add_link(links: Json<Vec<models::db_less::NewLink>>, db: &State<Pool>, config: &State<Config>, rl: &State<RateLimitState>, ip: SocketAddr) -> ResponseBuilder<Vec<models::db_less::NewLinkResult>, JsonValue> {
   let mut response_builder = ResponseBuilder::new();
   let ip = ip.ip();
   let links = links.0;
