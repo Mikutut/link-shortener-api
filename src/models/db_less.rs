@@ -19,7 +19,7 @@ pub struct NewLink {
   pub target: String
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct NewLinkResult {
   #[serde(rename = "linkId")]
   pub link_id: String,
@@ -29,7 +29,7 @@ pub struct NewLinkResult {
   pub link: String
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct EditLink {
   #[serde(rename = "linkId")]
   pub link_id: String,
@@ -40,7 +40,7 @@ pub struct EditLink {
   pub control_key: String
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct EditLinkResult {
   #[serde(rename = "linkId")]
   pub link_id: String,
@@ -48,7 +48,7 @@ pub struct EditLinkResult {
   pub link: String
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct DeleteLink {
   #[serde(rename = "linkId")]
   pub link_id: String,
