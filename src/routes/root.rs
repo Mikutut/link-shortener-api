@@ -1,6 +1,6 @@
 use crate::models;
 use rocket::response::{Redirect};
-use rocket::{self, get, post, delete, patch, State};
+use rocket::{self, get, post, delete, patch, put, State};
 use rocket::http::Status;
 use rocket::serde::{json::{Json, Value}};
 use nanoid::{nanoid};
@@ -154,7 +154,7 @@ pub fn get_links(db: &State<Pool>, _rl: guards::rate_limit::RateLimit, config: &
   response_builder.build().json_respond()
 }
 
-#[post("/add-link", data = "<link>", rank = 1)]
+#[post("/add-link", data = "<link>")]
 pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit, config: &State<Config>) -> ResponseResult<Json<JsonErrorResponse<models::db_less::NewLinkResult>>> {
   let mut response_builder = ResponseBuilder::new();
 
@@ -230,46 +230,57 @@ pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, _rl: gua
 
             match new_link_id {
               Ok(new_link_id) => {
-                let new_link = models::NewLink {
-                  link_id: new_link_id.clone(),
-                  target: new_target,
-                  control_key: new_control_key_hash
-                };
+                match Url::parse(&new_target) {
+                    Ok(_) => {
+                      let new_link = models::NewLink {
+                        link_id: new_link_id.clone(),
+                        target: new_target,
+                        control_key: new_control_key_hash
+                      };
 
-                let result = diesel::insert_into(links::table)
-                  .values(new_link)
-                  .execute(conn);
+                      let result = diesel::insert_into(links::table)
+                        .values(new_link)
+                        .execute(conn);
 
-                if let Ok(_) = result {
-                  let result = links::table
-                    .find(new_link_id)
-                    .load::<models::Link>(conn);
+                      if let Ok(_) = result {
+                        let result = links::table
+                          .find(new_link_id)
+                          .load::<models::Link>(conn);
 
-                  if let Ok(new_link) = result {
-                    let new_link = new_link[0].clone();
+                        if let Ok(new_link) = result {
+                          let new_link = new_link[0].clone();
 
-                    response_builder.success(Status::Ok);
-                    response_builder.data(
-                      ResponseDataType::Value(models::db_less::NewLinkResult {
-                        link_id: new_link.link_id.clone(),
-                        target: new_link.target,
-                        control_key: new_control_key,
-                        link: format!("{}/{}", base_url, new_link.link_id)
-                      })
-                    );              
-                  } else {
+                          response_builder.success(Status::Ok);
+                          response_builder.data(
+                            ResponseDataType::Value(models::db_less::NewLinkResult {
+                              link_id: new_link.link_id.clone(),
+                              target: new_link.target,
+                              control_key: new_control_key,
+                              link: format!("{}/{}", base_url, new_link.link_id)
+                            })
+                          );              
+                        } else {
+                          response_builder.error(
+                            Status::InternalServerError,
+                            ResponseErrorType::DatabaseError,
+                            String::from("New link was added, but server could not retrieve required data.")
+                          );
+                        }
+                      } else {
+                        response_builder.error(
+                          Status::InternalServerError,
+                          ResponseErrorType::DatabaseError,
+                          String::from("Could not add link to database!")
+                        );
+                      }
+                    },
+                    Err(_) => {
                     response_builder.error(
-                      Status::InternalServerError,
-                      ResponseErrorType::DatabaseError,
-                      String::from("New link was added, but server could not retrieve required data.")
+                      Status::BadRequest,
+                      ResponseErrorType::ValidationError,
+                      format!("'{}' is not a valid URL!", new_target.clone())
                     );
                   }
-                } else {
-                  response_builder.error(
-                    Status::InternalServerError,
-                    ResponseErrorType::DatabaseError,
-                    String::from("Could not add link to database!")
-                  );
                 }
               },
               Err(_) => {}

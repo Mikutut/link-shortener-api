@@ -3,8 +3,8 @@
 ---
 
 - [ ] Add logging to file
-- [ ] Add URL validation when adding/editing links
-  - [ ] When adding links
+- [x] Add URL validation when adding/editing links
+  - [x] When adding links
   - [x] When editing links
 - [ ] Add bulk requests
 - [x] Add bcrypt hashing
