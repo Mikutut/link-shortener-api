@@ -6,6 +6,12 @@ pub type ResponseResult<S> = (Status, S);
 pub type JsonErrorResponse<S> = Response<S, Value>;
 pub type EmptyResponse<E> = Response<(), E>;
 
+#[derive(Debug, Clone)]
+enum ResponseStatusType {
+  Success,
+  Error
+}
+
 #[derive(Debug, Serialize, Clone)]
 #[serde(untagged)]
 pub enum ResponseDataType<S: Serialize> {
@@ -39,6 +45,8 @@ pub struct Response<S: Serialize, E: Serialize> {
   status_string: String,
   #[serde(rename = "code")]
   status_code: u16,
+  #[serde(skip_serializing)]
+  status_type: ResponseStatusType,
   #[serde(rename = "errorType")]
   #[serde(skip_serializing_if = "Option::is_none")]
   error_type: Option<ResponseErrorType>,
@@ -53,6 +61,19 @@ pub struct Response<S: Serialize, E: Serialize> {
 }
 
 impl<S: Serialize, E: Serialize> Response<S, E> {
+  pub fn is_success(res: &Response<S, E>) -> bool {
+    match &res.status_type {
+      ResponseStatusType::Success => true,
+      ResponseStatusType::Error => false
+    }
+  }
+  pub fn is_error(res: &Response<S, E>) -> bool {
+    match &res.status_type {
+      ResponseStatusType::Success => false,
+      ResponseStatusType::Error => true
+    }
+  }
+
   pub fn json(self) -> Json<Response<S, E>> {
     Json(self)
   }
@@ -64,6 +85,7 @@ impl<S: Serialize, E: Serialize> Response<S, E> {
 
 pub struct ResponseBuilder<S: Serialize, E: Serialize> {
   status: Status,
+  status_type: ResponseStatusType,
   error_type: Option<ResponseErrorType>,
   error_message: Option<String>,
   data: Option<ResponseDataType<S>>,
@@ -74,6 +96,7 @@ impl<S: Serialize, E: Serialize> ResponseBuilder<S, E> {
   pub fn new() -> ResponseBuilder<S, E> {
     ResponseBuilder {
       status: Status::InternalServerError,
+      status_type: ResponseStatusType::Error,
       error_type: Some(ResponseErrorType::UndefinedError),
       error_message: Some(String::from("Default response created from ResponseBuilder.")),
       data: None,
@@ -84,6 +107,7 @@ impl<S: Serialize, E: Serialize> ResponseBuilder<S, E> {
   pub fn success(&mut self, status: Status) -> &mut Self {
     if status.code < 400 {
       self.status = status;
+      self.status_type = ResponseStatusType::Success;
       self.error_type = None;
       self.error_message = None;
 
@@ -95,6 +119,7 @@ impl<S: Serialize, E: Serialize> ResponseBuilder<S, E> {
   pub fn error(&mut self, status: Status, error_type: ResponseErrorType, error_message: String) -> &mut Self {
     if status.code >= 400 {
       self.status = status;
+      self.status_type = ResponseStatusType::Error;
       self.error_type = Some(error_type);
       self.error_message = Some(error_message);
 
@@ -130,10 +155,24 @@ impl<S: Serialize, E: Serialize> ResponseBuilder<S, E> {
       status: self.status,
       status_string: status_str,
       status_code: status_code,
+      status_type: self.status_type,
       error_type: self.error_type,
       error_message: self.error_message,
       data: self.data,
       error_data: self.error_data
+    }
+  }
+
+  pub fn is_success(response_builder: &ResponseBuilder<S, E>) -> bool {
+    match &response_builder.status_type {
+      ResponseStatusType::Success => true,
+      ResponseStatusType::Error => false
+    }
+  }
+  pub fn is_error(response_builder: &ResponseBuilder<S, E>) -> bool {
+    match &response_builder.status_type {
+      ResponseStatusType::Success => false,
+      ResponseStatusType::Error => true
     }
   }
 }
