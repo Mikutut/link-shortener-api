@@ -138,9 +138,16 @@ impl<S: Serialize, E: Serialize> ResponseBuilder<S, E> {
     self
   }
 
+  pub fn get_data(&self) -> &Option<ResponseDataType<S>> {
+    &self.data
+  }
   pub fn clear_data(&mut self) -> &mut Self {
     self.data = None;
     self
+  }
+
+  pub fn get_error_data(&self) -> &Option<ResponseDataType<E>> {
+    &self.error_data
   }
   pub fn clear_error_data(&mut self) -> &mut Self {
     self.error_data = None;

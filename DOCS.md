@@ -5,17 +5,13 @@
 ## Table of contents
 
 - [Configuration](#configuration)
-  - [Overview](#overview)
   - [Configuration keys](#configuration-keys)
 - [Errors](#errors)
-  - [Overview](#overview-1)
   - [Error types](#error-types)
 
 ---
 
 ## Configuration
-
-### Overview
 
 Configuration is stored inside of `Config.toml` file. It follows the same rules as Rocket's configuration (`debug` and `release` profiles, `default` profile for values applied to both, `global` for overrides, etc.)
 
@@ -33,8 +29,6 @@ Configuration is stored inside of `Config.toml` file. It follows the same rules 
 ---
 
 ## Errors
-
-### Overview
 
 Sometimes, API may return an error. In that case, response will include appropriate an error type and an error message, the latter of which should clarify the source of the former. Proper error handling should consist of:
 
@@ -54,6 +48,7 @@ Sometimes, API may return an error. In that case, response will include appropri
 | `LinkNotFoundError` | Link with provided ID has not been found in database. |
 | `ControlKeyHashGenerationError` | Server could not generate bcrypt hash of new control key. |
 | `ControlKeyHashVerificationError` | Server could not verify bcrypt hash acquired from database. |
+| `BulkRequestExceedingSizeError` | Size of bulk request's data is greater than rate limit. |
 | `GetLinksError` | Loosely specified error regarding getting list of links. Refer to error message for more information. |
 | `AccessLinkError` | Loosely specified error regarding accessing link. Refer to error message for more information. |
 | `AddLinkError` | Loosely specified error regarding adding link. Refer to error message for more information. |
