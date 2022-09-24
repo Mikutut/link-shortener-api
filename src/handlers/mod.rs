@@ -10,6 +10,8 @@ use nanoid::{nanoid};
 use rocket::http::Status;
 use diesel::prelude::*;
 
+pub mod bulk;
+
 pub fn check_id(link_id: String, db: &State<Pool>) -> ResponseBuilder<bool, Value> {
   let mut response_builder = ResponseBuilder::new();
 
@@ -151,7 +153,7 @@ pub fn get_links(db: &State<Pool>, config: &State<Config>) -> ResponseBuilder<Ve
   response_builder
 }
 
-pub fn add_link(link: Json<models::db_less::NewLink>, db: &State<Pool>, config: &State<Config>) -> ResponseBuilder<models::db_less::NewLinkResult, Value> {
+pub fn add_link(link: &models::db_less::NewLink, db: &State<Pool>, config: &State<Config>) -> ResponseBuilder<models::db_less::NewLinkResult, Value> {
   let mut response_builder = ResponseBuilder::new();
 
   match db.get() {
