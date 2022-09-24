@@ -12,12 +12,14 @@ fn rocket() -> _ {
     .attach(fairings::database::DatabaseInitiator)
     .attach(fairings::rate_limit::RateLimit)
     .mount("/", routes![
-      routes::root::get_links, 
-      routes::root::add_link, 
-      routes::root::access_link, 
-      routes::root::delete_link,
-      routes::root::edit_link,
-      routes::root::check_id
+      routes::root::get_get_links, 
+      routes::root::post_add_link,
+      routes::root::put_add_link, 
+      routes::root::get_access_link, 
+      routes::root::delete_delete_link,
+      routes::root::patch_edit_link,
+      routes::root::post_edit_link,
+      routes::root::get_check_id
     ])
     .register("/", catchers![
       catchers::root::invalid_request_data,
