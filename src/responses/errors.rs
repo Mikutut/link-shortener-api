@@ -1,12 +1,13 @@
 use serde::{Serialize};
+use serde_json::{to_value};
 use super::*;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct BulkRequestError<E: Serialize> {
   #[serde(rename = "requestNumber")]
-  pub request_number: i32,
-  #[serde(rename = "requestError")]
-  pub request_error: ResponseErrorType,
+  pub request_number: u32,
+  #[serde(rename = "requestErrorType")]
+  pub request_error_type: ResponseErrorType,
   #[serde(rename = "requestErrorMessage")]
   pub request_error_message: String,
   #[serde(rename = "requestErrorData")]
