@@ -1,19 +1,9 @@
 use serde::{Serialize};
-use rocket::serde::json::{self, Json, Value};
+use rocket::serde::json::{Json};
 use rocket::http::Status;
 
-pub mod successes;
 pub mod errors;
-
-pub type ResponseResult<S> = (Status, S);
-pub type JsonErrorResponse<S> = Response<S, Value>;
-pub type EmptyResponse<E> = Response<(), E>;
-
-#[derive(Debug, Clone)]
-enum ResponseStatusType {
-  Success,
-  Error
-}
+pub mod successes;
 
 #[derive(Debug, Serialize, Clone)]
 pub enum ResponseErrorType {
@@ -35,169 +25,200 @@ pub enum ResponseErrorType {
   UndefinedError
 } 
 
+#[derive(Serialize, Debug, Clone)]
+pub enum ResponseType {
+  Success,
+  Error
+}
+
 #[derive(Debug, Serialize, Clone)]
 pub struct Response<S: Serialize, E: Serialize> {
   #[serde(skip_serializing)]
-  status: Status,
+  pub status: Status,
   #[serde(rename = "status")]
-  status_string: String,
+  pub status_string: String,
   #[serde(rename = "code")]
-  status_code: u16,
-  #[serde(skip_serializing)]
-  status_type: ResponseStatusType,
+  pub status_code: u16,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub data: Option<S>,
+  #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(rename = "errorType")]
+  pub error_type: Option<ResponseErrorType>,
   #[serde(skip_serializing_if = "Option::is_none")]
-  error_type: Option<ResponseErrorType>,
   #[serde(rename = "errorMessage")]
+  pub error_message: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
-  error_message: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  data: Option<S>,
   #[serde(rename = "errorData")]
-  #[serde(skip_serializing_if = "Option::is_none")]
-  error_data: Option<E>
+  pub error_data: Option<E>
 }
 
 impl<S: Serialize, E: Serialize> Response<S, E> {
-  pub fn is_success(res: &Response<S, E>) -> bool {
-    match &res.status_type {
-      ResponseStatusType::Success => true,
-      ResponseStatusType::Error => false
-    }
-  }
-  pub fn is_error(res: &Response<S, E>) -> bool {
-    match &res.status_type {
-      ResponseStatusType::Success => false,
-      ResponseStatusType::Error => true
-    }
-  }
-
-  pub fn json(self) -> Json<Response<S, E>> {
+  pub fn json(self) -> Json<Self> {
     Json(self)
   }
 
-  pub fn json_respond(self) -> (Status, Json<Response<S, E>>) {
+  pub fn json_respond(self) -> (Status, Json<Self>) {
     (self.status, self.json())
   }
 }
 
-pub struct ResponseBuilder<S: Serialize, E: Serialize> {
+#[derive(Debug, Clone)]
+pub struct ResponseData<S: Serialize, E: Serialize> {
   status: Status,
-  status_type: ResponseStatusType,
+  status_type: ResponseType,
+  data: Option<S>,
   error_type: Option<ResponseErrorType>,
   error_message: Option<String>,
-  data: Option<S>,
   error_data: Option<E>
 }
 
-impl<S: Serialize, E: Serialize> ResponseBuilder<S, E> {
-  pub fn new() -> ResponseBuilder<S, E> {
-    ResponseBuilder {
+impl<S: Serialize, E: Serialize> ResponseData<S, E> {
+  pub fn new() -> Self {
+    ResponseData {
       status: Status::InternalServerError,
-      status_type: ResponseStatusType::Error,
-      error_type: Some(ResponseErrorType::UndefinedError),
-      error_message: Some(String::from("Default response created from ResponseBuilder.")),
+      status_type: ResponseType::Error,
       data: None,
+      error_type: Some(ResponseErrorType::UndefinedError),
+      error_message: Some(String::from("Default response.")),
       error_data: None
     }
   }
 
-  pub fn success(&mut self, status: Status) -> &mut Self {
-    if status.code < 400 {
-      self.status = status;
-      self.status_type = ResponseStatusType::Success;
-      self.error_type = None;
-      self.error_message = None;
-
-      self
-    } else {
-      panic!("error status supplied to success response");
-    }
-  }
-  pub fn error(&mut self, status: Status, error_type: ResponseErrorType, error_message: String) -> &mut Self {
-    if status.code >= 400 {
-      self.status = status;
-      self.status_type = ResponseStatusType::Error;
-      self.error_type = Some(error_type);
-      self.error_message = Some(error_message);
-
-      self
-    } else {
-      panic!("info/status/redirect status supplied to error response");
-    }
-  }
-
-  pub fn get_status(&self) -> Status {
-    self.status
-  }
-  pub fn get_error_type(&self) -> Option<ResponseErrorType> {
-    self.error_type.clone()
-  }
-  pub fn get_error_message(&self) -> Option<String> {
-    self.error_message.clone()
-  }
-
-  pub fn data(&mut self, data: S) -> &mut Self {
-    self.data = Some(data);
-    self
-  }
-  pub fn error_data(&mut self, data: E) -> &mut Self {
-    self.error_data = Some(data);
-    self
-  }
-
-  pub fn get_data(&self) -> Option<&S> {
-    self.data.as_ref()
-  }
-  pub fn clear_data(&mut self) -> &mut Self {
-    self.data = None;
-    self
-  }
-
-  pub fn get_error_data(&self) -> Option<&E> {
-    self.error_data.as_ref()
-  }
-  pub fn clear_error_data(&mut self) -> &mut Self {
-    self.error_data = None;
-    self
-  }
-
-  pub fn build(self) -> Response<S, E> {
-    let status_str: String = if self.status.code < 400 { String::from("success") } else { String::from("error") };
-    let status_code: u16 = self.status.code;
-
-    Response {
+  pub fn transform<T>(self, data: T) -> ResponseData<T, E>
+  where
+    T: Serialize 
+  {
+    ResponseData {
       status: self.status,
-      status_string: status_str,
-      status_code: status_code,
       status_type: self.status_type,
+      data: Some(data),
       error_type: self.error_type,
       error_message: self.error_message,
-      data: self.data,
       error_data: self.error_data
     }
   }
 
-  pub fn is_success(response_builder: &ResponseBuilder<S, E>) -> bool {
-    match &response_builder.status_type {
-      ResponseStatusType::Success => true,
-      ResponseStatusType::Error => false
+  pub fn transform_error<T>(self, data: T) -> ResponseData<S, T>
+  where
+    T: Serialize
+  {
+    ResponseData {
+      status: self.status,
+      status_type: self.status_type,
+      data: self.data,
+      error_type: self.error_type,
+      error_message: self.error_message,
+      error_data: Some(data)
     }
   }
-  pub fn is_error(response_builder: &ResponseBuilder<S, E>) -> bool {
-    match &response_builder.status_type {
-      ResponseStatusType::Success => false,
-      ResponseStatusType::Error => true
+
+  pub fn get_status(&self) -> &Status {
+    &self.status
+  }
+  pub fn get_status_type(&self) -> &ResponseType {
+    &self.status_type
+  }
+  pub fn get_data(&self) -> Option<&S> {
+    match &self.data {
+      Some(data) => Some(data),
+      None => None
     }
   }
-}
+  pub fn get_error_type(&self) -> Option<&ResponseErrorType> {
+    match &self.error_type {
+      Some(error_type) => Some(error_type),
+      None => None
+    }
+  }
+  pub fn get_error_message(&self) -> Option<&String> {
+    match &self.error_message {
+      Some(error_message) => Some(error_message),
+      None => None
+    }
+  }
+  pub fn get_error_data(&self) -> Option<&E> {
+    match &self.error_data {
+      Some(error_data) => Some(error_data),
+      None => None
+    }
+  }
 
-pub trait ToJson {
-  fn to_json(self) -> Result<Value, serde_json::error::Error>;
-}
+  pub fn set_status(mut self, status: Status) -> Self {
+    self.status = status;
+    self
+  }
+  pub fn set_type(mut self, response_type: ResponseType) -> Self {
+    self.status_type = response_type;
+    self
+  }
+  pub fn set_data(mut self, data: S) -> Self {
+    self.data = Some(data);
+    self
+  }
+  pub fn set_error_type(mut self, error_type: ResponseErrorType) -> Self {
+    self.error_type = Some(error_type);
+    self
+  }
+  pub fn set_error_message(mut self, error_message: String) -> Self {
+    self.error_message = Some(error_message);
+    self
+  }
+  pub fn set_error_data(mut self, data: E) -> Self {
+    self.error_data = Some(data);
+    self
+  }
 
-impl<S: Serialize> ToJson for S {
-  fn to_json(self) -> Result<Value, serde_json::error::Error> {
-    json::to_value(self)
+  pub fn clear_data(mut self) -> Self {
+    self.data = None;
+    self
+  }
+  pub fn clear_error_type(mut self) -> Self {
+    self.error_type = None;
+    self
+  }
+  pub fn clear_error_message(mut self) -> Self {
+    self.error_message = None;
+    self
+  }
+  pub fn clear_error_data(mut self) -> Self {
+    self.error_data = None;
+    self
+  }
+
+  pub fn success(mut self, status: Status, data: Option<S>) -> Self {
+    self = self
+      .clear_error_type()
+      .clear_error_message()
+      .clear_error_data();
+
+    self.status = status;
+    self.data = data;
+
+    self
+  }
+  pub fn error(mut self, status: Status, error_type: ResponseErrorType, error_message: String, error_data: Option<E>) -> Self {
+    self = self
+      .clear_data();
+
+    self.status = status;
+    self.error_type = Some(error_type);
+    self.error_message = Some(error_message);
+    self.error_data = error_data;
+
+    self
+  }
+
+  pub fn to_response(self) -> Response<S, E> {
+    let code = self.status.code;
+
+    Response {
+      status: self.status,
+      status_string: String::from(if code < 400 { "success" } else { "error" }),
+      status_code: code,
+      data: self.data,
+      error_type: self.error_type,
+      error_message: self.error_message,
+      error_data: self.error_data
+    }
   }
 }
