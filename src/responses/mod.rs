@@ -49,7 +49,7 @@ pub struct Response<S: Serialize, E: Serialize> {
   pub error_message: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(rename = "errorData")]
-  pub error_data: Option<E>
+  pub error_data: Option<errors::Errors<E>>
 }
 
 impl<S: Serialize, E: Serialize> Response<S, E> {
@@ -69,7 +69,7 @@ pub struct ResponseData<S: Serialize, E: Serialize> {
   data: Option<S>,
   error_type: Option<ResponseErrorType>,
   error_message: Option<String>,
-  error_data: Option<E>
+  error_data: Option<errors::Errors<E>>
 }
 
 impl<S: Serialize, E: Serialize> ResponseData<S, E> {
@@ -98,7 +98,7 @@ impl<S: Serialize, E: Serialize> ResponseData<S, E> {
     }
   }
 
-  pub fn transform_error<T>(self, data: Option<T>) -> ResponseData<S, T>
+  pub fn transform_error<T>(self, data: Option<errors::Errors<T>>) -> ResponseData<S, T>
   where
     T: Serialize
   {
@@ -136,7 +136,7 @@ impl<S: Serialize, E: Serialize> ResponseData<S, E> {
       None => None
     }
   }
-  pub fn get_error_data(&self) -> Option<&E> {
+  pub fn get_error_data(&self) -> Option<&errors::Errors<E>> {
     match &self.error_data {
       Some(error_data) => Some(error_data),
       None => None
@@ -163,7 +163,7 @@ impl<S: Serialize, E: Serialize> ResponseData<S, E> {
     self.error_message = Some(error_message);
     self
   }
-  pub fn set_error_data(mut self, data: E) -> Self {
+  pub fn set_error_data(mut self, data: errors::Errors<E>) -> Self {
     self.error_data = Some(data);
     self
   }
@@ -196,7 +196,7 @@ impl<S: Serialize, E: Serialize> ResponseData<S, E> {
 
     self
   }
-  pub fn error(mut self, status: Status, error_type: ResponseErrorType, error_message: String, error_data: Option<E>) -> Self {
+  pub fn error(mut self, status: Status, error_type: ResponseErrorType, error_message: String, error_data: Option<errors::Errors<E>>) -> Self {
     self = self
       .clear_data();
 
@@ -240,7 +240,7 @@ impl<S: Serialize + Clone, E: Serialize + Clone> ResponseData<S, E> {
       None => None
     }
   }
-  pub fn clone_error_data(&self) -> Option<E> {
+  pub fn clone_error_data(&self) -> Option<errors::Errors<E>> {
     match &self.error_data {
       Some(data) => Some(data.clone()),
       None => None

@@ -118,12 +118,12 @@ pub fn add_link(link: &requests::NewLink, db: &State<Pool>, config: &State<Confi
                 Status::BadRequest,
                 ResponseErrorType::ValidationError,
                 format!("Provided ID is too long!"),
-                Some(
+                Some(errors::Errors::CustomError(
                   json!({
                    "providedIdLength": new_link_id.len(),
                    "maxIdLength": max_id_length
                   })
-                )
+                ))
               );
               Err(())
             } else {
@@ -268,10 +268,12 @@ pub fn edit_link(link_id: &String, control_key: &String, new_link_id: &Option<St
                     Status::BadRequest,
                     ResponseErrorType::ValidationError,
                     String::from("Provided ID is too long!"),
-                    Some(json!({
-                      "providedIdLength": new_link_id.len(),
-                      "maxIdLength": max_id_length
-                    }))
+                    Some(errors::Errors::CustomError(
+                      json!({
+                        "providedIdLength": new_link_id.len(),
+                        "maxIdLength": max_id_length
+                      })
+                    ))
                   );
                   Err(())
                 }

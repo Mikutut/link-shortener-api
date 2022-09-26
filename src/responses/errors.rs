@@ -4,6 +4,7 @@ use super::*;
 use rocket::http::Status;
 
 #[derive(Debug, Serialize, Clone)]
+#[serde(untagged)]
 pub enum Errors<E: Serialize> {
   RateLimitedError {
     #[serde(rename = "maxRequests")]
@@ -28,28 +29,16 @@ pub enum Errors<E: Serialize> {
     provided_id_length: usize,
     #[serde(rename = "maxIdLength")]
     max_id_length: usize
+  },
+  CustomError(E),
+  NoError
+}
+
+impl<E: Serialize> Errors<E> {
+  pub fn transform<F: Serialize>(self, new_error: Errors<F>) -> Errors<F> {
+    new_error
   }
 }
-
-#[derive(Debug, Serialize, Clone)]
-pub struct RateLimitedError {
-  pub max_requests: i64,
-  pub time_window: i64,
-  pub cooldown: i64
-}
-
-//#[derive(Debug, Serialize, Clone)]
-//pub struct BulkRequestError<E: Serialize> {
-//  #[serde(rename = "requestNumber")]
-//  pub request_number: u32,
-//  #[serde(rename = "requestErrorType")]
-//  pub request_error_type: ResponseErrorType,
-//  #[serde(rename = "requestErrorMessage")]
-//  pub request_error_message: String,
-//  #[serde(rename = "requestErrorData")]
-//  #[serde(skip_serializing_if = "Option::is_none")]
-//  pub request_error_data: Option<E>
-//}
 
 pub struct AdHocErrors<S: Serialize, E: Serialize> {
   _one: PhantomData<S>,

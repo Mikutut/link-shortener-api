@@ -9,8 +9,7 @@ use rocket::{
   }, 
   Responder, 
   serde::json::{
-    Json, 
-    Value
+    Json
   },
   outcome::Outcome::Success
 };
@@ -25,8 +24,8 @@ pub struct RateLimitedWrappingResponder<'h, R> {
 }
 
 #[catch(429)]
-pub async fn rate_limited<'a>(req: &Request<'_>) -> Result<RateLimitedWrappingResponder<'a, (Status, Json<Response<(), errors::RateLimitedError>>)>, (Status, Json<Response<(), Value>>)> {
-  let mut response_data: ResponseData<(), Value> = ResponseData::new();
+pub async fn rate_limited<'a>(req: &Request<'_>) -> Result<RateLimitedWrappingResponder<'a, (Status, Json<Response<(), ()>>)>, (Status, Json<Response<(), ()>>)> {
+  let mut response_data: ResponseData<(), ()> = ResponseData::new();
 
   response_data = response_data
     .set_status(Status::InternalServerError)
@@ -48,11 +47,11 @@ pub async fn rate_limited<'a>(req: &Request<'_>) -> Result<RateLimitedWrappingRe
                   .set_status(Status::TooManyRequests)
                   .set_error_type(ResponseErrorType::RateLimitedError)
                   .set_error_message(String::from("You have been rate limited!"))
-                  .transform_error::<errors::RateLimitedError>(Some(errors::RateLimitedError {
+                  .set_error_data(errors::Errors::RateLimitedError {
                     max_requests: max_requests,
                     time_window: time_window,
                     cooldown: retry_after
-                  }));
+                  });
 
                 let response = RateLimitedWrappingResponder {
                   inner: response_data.to_response().json_respond(),
