@@ -22,6 +22,12 @@ pub enum Errors<E: Serialize> {
     #[serde(rename = "requestErrorData")]
     #[serde(skip_serializing_if = "Option::is_none")]
     request_error_data: Option<E>
+  },
+  LinkIdTooLongError {
+    #[serde(rename = "providedIdLength")]
+    provided_id_length: usize,
+    #[serde(rename = "maxIdLength")]
+    max_id_length: usize
   }
 }
 
