@@ -27,3 +27,6 @@ fast_log = "1.5.37"
 figment = { version = "0.10.7", features = ["toml"] }
 bcrypt = "0.13.0"
 url = { version = "2.3.1", features = [ "serde" ] }
+
+[profile]
+release = { strip = "symbols", lto = "thin", opt-level = "z" }
