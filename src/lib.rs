@@ -9,3 +9,4 @@ pub mod fairings;
 pub mod handlers;
 
 pub mod responses;
+pub mod requests;

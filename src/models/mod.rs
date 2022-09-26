@@ -3,8 +3,6 @@ use chrono::NaiveDateTime;
 use ::serde::{Serialize};
 use crate::schema::*;
 
-pub mod db_less;
-
 #[derive(Queryable, AsChangeset, Serialize, Clone)]
 pub struct Link {
   #[serde(rename = "linkId")]

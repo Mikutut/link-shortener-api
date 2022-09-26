@@ -48,11 +48,11 @@ pub async fn rate_limited<'a>(req: &Request<'_>) -> Result<RateLimitedWrappingRe
                   .set_status(Status::TooManyRequests)
                   .set_error_type(ResponseErrorType::RateLimitedError)
                   .set_error_message(String::from("You have been rate limited!"))
-                  .transform_error::<errors::RateLimitedError>(errors::RateLimitedError {
+                  .transform_error::<errors::RateLimitedError>(Some(errors::RateLimitedError {
                     max_requests: max_requests,
                     time_window: time_window,
                     cooldown: retry_after
-                  });
+                  }));
 
                 let response = RateLimitedWrappingResponder {
                   inner: response_data.to_response().json_respond(),

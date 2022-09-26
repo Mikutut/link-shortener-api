@@ -84,21 +84,21 @@ impl<S: Serialize, E: Serialize> ResponseData<S, E> {
     }
   }
 
-  pub fn transform<T>(self, data: T) -> ResponseData<T, E>
+  pub fn transform<T>(self, data: Option<T>) -> ResponseData<T, E>
   where
     T: Serialize 
   {
     ResponseData {
       status: self.status,
       status_type: self.status_type,
-      data: Some(data),
+      data: data,
       error_type: self.error_type,
       error_message: self.error_message,
       error_data: self.error_data
     }
   }
 
-  pub fn transform_error<T>(self, data: T) -> ResponseData<S, T>
+  pub fn transform_error<T>(self, data: Option<T>) -> ResponseData<S, T>
   where
     T: Serialize
   {
@@ -108,7 +108,7 @@ impl<S: Serialize, E: Serialize> ResponseData<S, E> {
       data: self.data,
       error_type: self.error_type,
       error_message: self.error_message,
-      error_data: Some(data)
+      error_data: data
     }
   }
 
@@ -219,6 +219,31 @@ impl<S: Serialize, E: Serialize> ResponseData<S, E> {
       error_type: self.error_type,
       error_message: self.error_message,
       error_data: self.error_data
+    }
+  }
+}
+
+impl<S: Serialize + Clone, E: Serialize + Clone> ResponseData<S, E> {
+  pub fn clone(&self) -> ResponseData<S, E> {
+    ResponseData {
+      status: self.status.clone(),
+      status_type: self.status_type.clone(),
+      data: self.data.clone(),
+      error_type: self.error_type.clone(),
+      error_message: self.error_message.clone(),
+      error_data: self.error_data.clone()
+    }
+  }
+  pub fn clone_data(&self) -> Option<S> {
+    match &self.data {
+      Some(data) => Some(data.clone()),
+      None => None
+    }
+  }
+  pub fn clone_error_data(&self) -> Option<E> {
+    match &self.error_data {
+      Some(data) => Some(data.clone()),
+      None => None
     }
   }
 }

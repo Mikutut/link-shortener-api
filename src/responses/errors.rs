@@ -4,6 +4,28 @@ use super::*;
 use rocket::http::Status;
 
 #[derive(Debug, Serialize, Clone)]
+pub enum Errors<E: Serialize> {
+  RateLimitedError {
+    #[serde(rename = "maxRequests")]
+    max_requests: i64,
+    #[serde(rename = "timeWindow")]
+    time_window: i64,
+    cooldown: i64
+  },
+  BulkRequestError {
+    #[serde(rename = "requestNumber")]
+    request_number: u32,
+    #[serde(rename = "requestErrorType")]
+    request_error_type: ResponseErrorType,
+    #[serde(rename = "requestErrorMessage")]
+    request_error_message: String,
+    #[serde(rename = "requestErrorData")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    request_error_data: Option<E>
+  }
+}
+
+#[derive(Debug, Serialize, Clone)]
 pub struct RateLimitedError {
   pub max_requests: i64,
   pub time_window: i64,
@@ -58,6 +80,16 @@ impl<S: Serialize, E: Serialize> AdHocErrors<S, E> {
       .set_status(Status::BadRequest)
       .set_error_type(ResponseErrorType::ValidationError)
       .set_error_message(format!("Target '{}' is not a valid URL!", target));
+
+    response_data
+  }
+  pub fn duplicate_id(mut response_data: ResponseData<S, E>, link_id: &String) -> ResponseData<S, E> {
+    response_data = response_data.error(
+      Status::Conflict,
+      ResponseErrorType::DuplicateIdError,
+      format!("Link with ID '{}' already exists!", link_id),
+      None
+    );
 
     response_data
   }
