@@ -171,6 +171,22 @@ impl<S: Serialize> ResponseData<S> {
     self
   }
 
+  pub fn clone_status(&self) -> Status {
+    self.status.clone()
+  }
+  pub fn clone_error_type(&self) -> Option<ResponseErrorType> {
+    self.error_type.clone()
+  }
+  pub fn clone_error_message(&self) -> Option<String> {
+    self.error_message.clone()
+  }
+  pub fn clone_error_data(&self) -> Option<errors::Errors> {
+    match &self.error_data {
+      Some(data) => Some(data.clone()),
+      None => None
+    }
+  }
+
   pub fn success(mut self, status: Status, data: Option<S>) -> Self {
     self = self
       .clear_error_type()
@@ -178,6 +194,7 @@ impl<S: Serialize> ResponseData<S> {
       .clear_error_data();
 
     self.status = status;
+    self.status_type = ResponseType::Success;
     self.data = data;
 
     self
@@ -187,6 +204,7 @@ impl<S: Serialize> ResponseData<S> {
       .clear_data();
 
     self.status = status;
+    self.status_type = ResponseType::Error;
     self.error_type = Some(error_type);
     self.error_message = Some(error_message);
     self.error_data = error_data;
@@ -199,7 +217,7 @@ impl<S: Serialize> ResponseData<S> {
 
     Response {
       status: self.status,
-      status_string: String::from(if code < 400 { "success" } else { "error" }),
+      status_string: String::from(if let ResponseType::Success = self.status_type { "success" } else { "error" }),
       status_code: code,
       data: self.data,
       error_type: self.error_type,
@@ -222,12 +240,6 @@ impl<S: Serialize + Clone> ResponseData<S> {
   }
   pub fn clone_data(&self) -> Option<S> {
     match &self.data {
-      Some(data) => Some(data.clone()),
-      None => None
-    }
-  }
-  pub fn clone_error_data(&self) -> Option<errors::Errors> {
-    match &self.error_data {
       Some(data) => Some(data.clone()),
       None => None
     }
