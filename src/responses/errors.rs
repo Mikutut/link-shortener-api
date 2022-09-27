@@ -76,4 +76,28 @@ impl Errors {
 
     response_data
   }
+  pub fn bulk_request_error<S: Serialize, T: Serialize>(mut response_data: ResponseData<S>, status: Status, request_number: u32, request_error: ResponseData<T>) -> ResponseData<S> {
+    let error_type = request_error.clone_error_type().unwrap();
+    let error_message = request_error.clone_error_message().unwrap();
+    let error_data = request_error.clone_error_data();
+
+    response_data = response_data.error(
+      status,
+      ResponseErrorType::BulkRequestError,
+      String::from("An error happened during processing of your bulk request. Refer to error data for more information."),
+      Some(
+        Errors::BulkRequestError { 
+          request_number: request_number, 
+          request_error_type: error_type, 
+          request_error_message: error_message, 
+          request_error_data: match error_data {
+            Some(data) => Some(Box::new(data)),
+            None => None
+          } 
+        }
+      )
+    );
+
+    response_data
+  }
 }
