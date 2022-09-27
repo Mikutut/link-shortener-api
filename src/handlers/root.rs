@@ -73,7 +73,7 @@ pub fn get_links(db: &State<Pool>, config: &State<Config>) -> (Status, Json<Resp
                   target: r.target.clone(),
                   added_at: r.added_at.clone(),
                   visit_count: r.visit_count.clone(),
-                  link: format!("{}/{}", base_url, r.link_id.clone())
+                  link: super::utils::build_link(&base_url, &r.link_id)
                 }
               })
               .collect::<Vec<successes::GetLink>>();

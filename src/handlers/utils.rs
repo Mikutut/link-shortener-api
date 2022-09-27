@@ -11,6 +11,10 @@ use crate::models;
 use crate::requests;
 use crate::config::Config;
 
+pub fn build_link(base_url: &String, link_id: &String) -> String {
+  format!("{}/l/{}", base_url, link_id)
+}
+
 pub fn check_id<T: Serialize>(link_id: &String, db: &State<Pool>) -> Result<bool, ResponseData<T>> {
   let response_data = ResponseData::new();
 
@@ -168,7 +172,7 @@ pub fn add_link(link: &requests::NewLink, db: &State<Pool>, config: &State<Confi
               link_id: link_id.clone(),
               target: target,
               control_key: control_key,
-              link: format!("{}/{}", base_url, link_id)
+              link: build_link(&base_url, &link_id)
             };
 
             Ok(new_link)
@@ -208,7 +212,7 @@ pub fn get_links(db: &State<Pool>, config: &State<Config>) -> Result<Vec<success
                   target: r.target.clone(),
                   added_at: r.added_at.clone(),
                   visit_count: r.visit_count.clone(),
-                  link: format!("{}/{}", base_url, r.link_id.clone())
+                  link: build_link(&base_url, &r.link_id)
                 }
               })
               .collect();
