@@ -1,5 +1,5 @@
 use rocket::{self, get, post, put, patch, delete, State, response::Redirect};
-use rocket::serde::{json::{Json, Value as JsonValue}};
+use rocket::serde::{json::{Json}};
 use rocket::http::Status;
 use crate::fairings::database::Pool;
 use crate::{guards, responses::*, handlers};
@@ -7,8 +7,8 @@ use crate::requests;
 use crate::config::Config;
 
 #[get("/check-id/<link_id>")]
-pub fn get_check_id(link_id: String, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> (Status, Json<Response<bool, JsonValue>>) {
-  let res_data = ResponseData::<bool, JsonValue>::new();
+pub fn get_check_id(link_id: String, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> (Status, Json<Response<bool>>) {
+  let res_data = ResponseData::<bool>::new();
 
   match handlers::utils::check_id::<successes::NewLinkResult>(&link_id, db) {
     Ok(r) => {
@@ -30,7 +30,7 @@ pub fn get_check_id(link_id: String, db: &State<Pool>, _rl: guards::rate_limit::
 }
 
 #[get("/<link_id>")]
-pub fn get_access_link(link_id: String, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> Result<Redirect, (Status, Json<Response<(), ()>>)> {
+pub fn get_access_link(link_id: String, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> Result<Redirect, (Status, Json<Response<()>>)> {
   match handlers::root::access_link(link_id, db) {
     Ok(redirect) => Ok(redirect),
     Err(response) => Err(response.json_respond())
@@ -38,7 +38,7 @@ pub fn get_access_link(link_id: String, db: &State<Pool>, _rl: guards::rate_limi
 }
 
 #[get("/get-links")]
-pub fn get_get_links(db: &State<Pool>, _rl: guards::rate_limit::RateLimit, config: &State<Config>) -> (Status, Json<Response<Vec<successes::GetLink>, JsonValue>>) {
+pub fn get_get_links(db: &State<Pool>, _rl: guards::rate_limit::RateLimit, config: &State<Config>) -> (Status, Json<Response<Vec<successes::GetLink>>>) {
   let res_data = ResponseData::new();
 
   match handlers::utils::get_links(db, config) {
@@ -57,20 +57,20 @@ pub fn get_get_links(db: &State<Pool>, _rl: guards::rate_limit::RateLimit, confi
 }
 
 #[post("/add-link", data = "<link>")]
-pub fn post_add_link(link: Json<requests::NewLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit, config: &State<Config>) -> (Status, Json<Response<successes::NewLinkResult, JsonValue>>) {
+pub fn post_add_link(link: Json<requests::NewLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit, config: &State<Config>) -> (Status, Json<Response<successes::NewLinkResult>>) {
   let link = link.into_inner();
 
   handlers::root::add_link(&link, db, config)
 }
 #[put("/add-link", data = "<link>")]
-pub fn put_add_link(link: Json<requests::NewLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit, config: &State<Config>) -> (Status, Json<Response<successes::NewLinkResult, JsonValue>>) {
+pub fn put_add_link(link: Json<requests::NewLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit, config: &State<Config>) -> (Status, Json<Response<successes::NewLinkResult>>) {
   let link = link.into_inner();
 
   handlers::root::add_link(&link, db, config)
 }
 
 #[delete("/delete-link", data = "<link>")]
-pub fn delete_delete_link(link: Json<requests::DeleteLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> (Status, Json<Response<(), JsonValue>>) {
+pub fn delete_delete_link(link: Json<requests::DeleteLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> (Status, Json<Response<()>>) {
   let res_data = ResponseData::new();
   let link_id = link.link_id.clone();
   let control_key = link.control_key.clone();
@@ -86,7 +86,7 @@ pub fn delete_delete_link(link: Json<requests::DeleteLink>, db: &State<Pool>, _r
 }
 
 #[post("/edit-link", data = "<link>")]
-pub fn post_edit_link(link: Json<requests::EditLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit, config: &State<Config>) -> (Status, Json<Response<successes::EditLinkResult, JsonValue>>) {
+pub fn post_edit_link(link: Json<requests::EditLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit, config: &State<Config>) -> (Status, Json<Response<successes::EditLinkResult>>) {
   let res_data = ResponseData::new();
   let link_id = link.link_id.clone();
   let control_key = link.control_key.clone();
@@ -110,7 +110,7 @@ pub fn post_edit_link(link: Json<requests::EditLink>, db: &State<Pool>, _rl: gua
   }
 }
 #[patch("/edit-link", data = "<link>")]
-pub fn patch_edit_link(link: Json<requests::EditLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit, config: &State<Config>) -> (Status, Json<Response<successes::EditLinkResult, JsonValue>>) {
+pub fn patch_edit_link(link: Json<requests::EditLink>, db: &State<Pool>, _rl: guards::rate_limit::RateLimit, config: &State<Config>) -> (Status, Json<Response<successes::EditLinkResult>>) {
   let res_data = ResponseData::new();
   let link_id = link.link_id.clone();
   let control_key = link.control_key.clone();

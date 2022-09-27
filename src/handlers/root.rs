@@ -1,7 +1,7 @@
 use rocket::{State};
 use rocket::response::Redirect;
 use rocket::http::Status;
-use rocket::serde::json::{Value as JsonValue, Json};
+use rocket::serde::json::{Json};
 use diesel::prelude::*;
 use crate::responses::*;
 use crate::models;
@@ -10,8 +10,8 @@ use crate::fairings::database::Pool;
 use crate::config::Config;
 use crate::requests;
 
-pub fn access_link(link_id: String, db: &State<Pool>) -> Result<Redirect, Response<(), ()>> {
-  let res_data = ResponseData::<(), ()>::new();
+pub fn access_link(link_id: String, db: &State<Pool>) -> Result<Redirect, Response<()>> {
+  let res_data = ResponseData::<()>::new();
 
   match db.get() {
     Ok(mut pool) => {
@@ -30,7 +30,7 @@ pub fn access_link(link_id: String, db: &State<Pool>) -> Result<Redirect, Respon
           },
           Ok(_) => {
             Err(
-              errors::AdHocErrors::link_id_not_found(res_data, &link_id)
+              errors::Errors::link_id_not_found(res_data, &link_id)
                 .to_response()
             )
           },
@@ -45,15 +45,15 @@ pub fn access_link(link_id: String, db: &State<Pool>) -> Result<Redirect, Respon
     },
     Err(_) => {
       Err(
-        errors::AdHocErrors::database_pool(res_data)
+        errors::Errors::database_pool(res_data)
           .to_response()
       )
     }
   }
 }
 
-pub fn get_links(db: &State<Pool>, config: &State<Config>) -> (Status, Json<Response<Vec<successes::GetLink>, JsonValue>>) {
-  let res_data = ResponseData::<Vec<successes::GetLink>, JsonValue>::new();
+pub fn get_links(db: &State<Pool>, config: &State<Config>) -> (Status, Json<Response<Vec<successes::GetLink>>>) {
+  let res_data = ResponseData::<Vec<successes::GetLink>>::new();
 
   match db.get() {
     Ok(mut pool) => {
@@ -99,14 +99,14 @@ pub fn get_links(db: &State<Pool>, config: &State<Config>) -> (Status, Json<Resp
         }
     },
     Err(_) => {
-      errors::AdHocErrors::database_pool(res_data)
+      errors::Errors::database_pool(res_data)
         .to_response()
         .json_respond()
     }
   }
 }
 
-pub fn add_link(link: &requests::NewLink, db: &State<Pool>, config: &State<Config>) -> (Status, Json<Response<successes::NewLinkResult, JsonValue>>) {
+pub fn add_link(link: &requests::NewLink, db: &State<Pool>, config: &State<Config>) -> (Status, Json<Response<successes::NewLinkResult>>) {
   let res_data = ResponseData::new();
 
   match super::utils::add_link(link, db, config) {
@@ -150,7 +150,7 @@ pub fn add_link(link: &requests::NewLink, db: &State<Pool>, config: &State<Confi
                 }
               }
           },
-          Err(_) => errors::AdHocErrors::database_pool(res_data).to_response().json_respond()
+          Err(_) => errors::Errors::database_pool(res_data).to_response().json_respond()
         },
         Err(_) => {
           res_data.error(
@@ -173,7 +173,7 @@ pub fn add_link(link: &requests::NewLink, db: &State<Pool>, config: &State<Confi
   }
 }
 
-pub fn delete_link(link_id: &String, control_key: &String, db: &State<Pool>) -> Result<(), ResponseData<(), JsonValue>> {
+pub fn delete_link(link_id: &String, control_key: &String, db: &State<Pool>) -> Result<(), ResponseData<()>> {
   let res_data = ResponseData::new();
 
   match db.get() {
@@ -198,11 +198,11 @@ pub fn delete_link(link_id: &String, control_key: &String, db: &State<Pool>) -> 
       },
       Err(r) => Err(r)
     },
-    Err(_) => Err(errors::AdHocErrors::database_pool(res_data))
+    Err(_) => Err(errors::Errors::database_pool(res_data))
   }
 }
 
-pub fn edit_link(link_id: &String, control_key: &String, new_link_id: &Option<String>, new_target: &Option<String>, db: &State<Pool>, config: &State<Config>) -> Result<successes::EditLinkResult, ResponseData<(), JsonValue>> {
+pub fn edit_link(link_id: &String, control_key: &String, new_link_id: &Option<String>, new_target: &Option<String>, db: &State<Pool>, config: &State<Config>) -> Result<successes::EditLinkResult, ResponseData<()>> {
   let res_data = ResponseData::new();
   let base_url = config.base_url.clone();
 
@@ -233,7 +233,7 @@ pub fn edit_link(link_id: &String, control_key: &String, new_link_id: &Option<St
             )
           }
       },
-      Err(_) => Err(errors::AdHocErrors::database_pool(res_data))
+      Err(_) => Err(errors::Errors::database_pool(res_data))
     },
     Err(r) => Err(r)
   }

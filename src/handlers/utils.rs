@@ -1,6 +1,5 @@
 use rocket::{State};
 use rocket::http::Status;
-use rocket::serde::json::{Value as JsonValue, json};
 use diesel::prelude::*;
 use bcrypt;
 use url::Url;
@@ -12,7 +11,7 @@ use crate::models;
 use crate::requests;
 use crate::config::Config;
 
-pub fn check_id<T: Serialize>(link_id: &String, db: &State<Pool>) -> Result<bool, ResponseData<T, JsonValue>> {
+pub fn check_id<T: Serialize>(link_id: &String, db: &State<Pool>) -> Result<bool, ResponseData<T>> {
   let response_data = ResponseData::new();
 
   match db.get() {
@@ -35,12 +34,12 @@ pub fn check_id<T: Serialize>(link_id: &String, db: &State<Pool>) -> Result<bool
         }
     },
     Err(_) => Err(
-      errors::AdHocErrors::database_pool(response_data)
+      errors::Errors::database_pool(response_data)
     )
   }
 }
 
-pub fn verify_control_key<S: Serialize, E: Serialize>(link_id: &String, control_key: &String, db: &State<Pool>) -> Result<bool, ResponseData<S, E>> {
+pub fn verify_control_key<S: Serialize>(link_id: &String, control_key: &String, db: &State<Pool>) -> Result<bool, ResponseData<S>> {
   let res_data = ResponseData::new();
 
   match db.get() {
@@ -69,7 +68,7 @@ pub fn verify_control_key<S: Serialize, E: Serialize>(link_id: &String, control_
             }
           },
           Ok(_) => Err(
-            errors::AdHocErrors::link_id_not_found(res_data, link_id)
+            errors::Errors::link_id_not_found(res_data, link_id)
           ),
           Err(_) => Err(
             res_data
@@ -83,7 +82,7 @@ pub fn verify_control_key<S: Serialize, E: Serialize>(link_id: &String, control_
         }
     },
     Err(_) => Err(
-      errors::AdHocErrors::database_pool(res_data)
+      errors::Errors::database_pool(res_data)
     )
   }
 }
@@ -95,8 +94,8 @@ pub fn verify_target(target: &String) -> bool {
   }
 }
 
-pub fn add_link(link: &requests::NewLink, db: &State<Pool>, config: &State<Config>) -> Result<successes::NewLinkResult, ResponseData<(), JsonValue>> {
-  let mut res_data = ResponseData::<(), JsonValue>::new();
+pub fn add_link(link: &requests::NewLink, db: &State<Pool>, config: &State<Config>) -> Result<successes::NewLinkResult, ResponseData<()>> {
+  let mut res_data = ResponseData::<()>::new();
 
   match db.get() {
     Ok(mut pool) => {
@@ -118,12 +117,12 @@ pub fn add_link(link: &requests::NewLink, db: &State<Pool>, config: &State<Confi
                 Status::BadRequest,
                 ResponseErrorType::ValidationError,
                 format!("Provided ID is too long!"),
-                Some(errors::Errors::CustomError(
-                  json!({
-                   "providedIdLength": new_link_id.len(),
-                   "maxIdLength": max_id_length
-                  })
-                ))
+                Some(
+                  errors::Errors::LinkIdTooLongError {
+                    provided_id_length: new_link_id.len(),
+                    max_id_length: max_id_length
+                  }
+                )
               );
               Err(())
             } else {
@@ -131,7 +130,7 @@ pub fn add_link(link: &requests::NewLink, db: &State<Pool>, config: &State<Confi
             }
           },
           Ok(_) => {
-            res_data = errors::AdHocErrors::duplicate_id(res_data, &new_link_id);
+            res_data = errors::Errors::duplicate_id(res_data, &new_link_id);
             Err(())
           },
           Err(res) => { 
@@ -175,7 +174,7 @@ pub fn add_link(link: &requests::NewLink, db: &State<Pool>, config: &State<Confi
             Ok(new_link)
           },
           false => Err(
-            errors::AdHocErrors::target_invalid(res_data, &target)
+            errors::Errors::target_invalid(res_data, &target)
           )
         },
         Err(_) => Err(
@@ -184,12 +183,12 @@ pub fn add_link(link: &requests::NewLink, db: &State<Pool>, config: &State<Confi
       }
     },
     Err(_) => Err(
-      errors::AdHocErrors::database_pool(res_data)
+      errors::Errors::database_pool(res_data)
     )
   }
 }
 
-pub fn get_links(db: &State<Pool>, config: &State<Config>) -> Result<Vec<successes::GetLink>, ResponseData<(), JsonValue>> {
+pub fn get_links(db: &State<Pool>, config: &State<Config>) -> Result<Vec<successes::GetLink>, ResponseData<()>> {
   let res_data = ResponseData::new();
 
   match db.get() {
@@ -227,30 +226,30 @@ pub fn get_links(db: &State<Pool>, config: &State<Config>) -> Result<Vec<success
         }
     },
     Err(_) => Err(
-      errors::AdHocErrors::database_pool(res_data)
+      errors::Errors::database_pool(res_data)
     )
   }
 }
 
-pub fn delete_link(link_id: &String, control_key: &String, db: &State<Pool>) -> Result<(), ResponseData<(), JsonValue>> {
+pub fn delete_link(link_id: &String, control_key: &String, db: &State<Pool>) -> Result<(), ResponseData<()>> {
   let res_data = ResponseData::new();
 
   match check_id(link_id, db) {
     Ok(r) if r == false => match verify_control_key(link_id, control_key, db) {
       Ok(r) if r == true => Ok(()),
       Ok(_) => Err(
-        errors::AdHocErrors::invalid_control_key(res_data, control_key, link_id)
+        errors::Errors::invalid_control_key(res_data, control_key, link_id)
       ),
       Err(r) => Err(r)
     },
     Ok(_) => Err(
-      errors::AdHocErrors::link_id_not_found(res_data, link_id)
+      errors::Errors::link_id_not_found(res_data, link_id)
     ),
     Err(r) => Err(r)
   }
 }
 
-pub fn edit_link(link_id: &String, control_key: &String, new_link_id: &Option<String>, new_target: &Option<String>, db: &State<Pool>, config: &State<Config>) -> Result<(String, String), ResponseData<(), JsonValue>> {
+pub fn edit_link(link_id: &String, control_key: &String, new_link_id: &Option<String>, new_target: &Option<String>, db: &State<Pool>, config: &State<Config>) -> Result<(String, String), ResponseData<()>> {
   let mut res_data = ResponseData::new();
   let max_id_length = config.max_id_length.clone();
 
@@ -268,18 +267,18 @@ pub fn edit_link(link_id: &String, control_key: &String, new_link_id: &Option<St
                     Status::BadRequest,
                     ResponseErrorType::ValidationError,
                     String::from("Provided ID is too long!"),
-                    Some(errors::Errors::CustomError(
-                      json!({
-                        "providedIdLength": new_link_id.len(),
-                        "maxIdLength": max_id_length
-                      })
-                    ))
+                    Some(
+                      errors::Errors::LinkIdTooLongError {
+                        provided_id_length: new_link_id.len(),
+                        max_id_length: max_id_length
+                      }
+                    )
                   );
                   Err(())
                 }
               },
               Ok(_) => {
-                res_data = errors::AdHocErrors::duplicate_id(res_data, new_link_id);
+                res_data = errors::Errors::duplicate_id(res_data, new_link_id);
                 Err(())
               },
               Err(r) => {
@@ -296,7 +295,7 @@ pub fn edit_link(link_id: &String, control_key: &String, new_link_id: &Option<St
             Some(new_target) => match verify_target(new_target) {
               true => Ok(new_target.clone()),
               false => {
-                res_data = errors::AdHocErrors::target_invalid(res_data, new_target);
+                res_data = errors::Errors::target_invalid(res_data, new_target);
                 Err(())
               }
             },
@@ -326,7 +325,7 @@ pub fn edit_link(link_id: &String, control_key: &String, new_link_id: &Option<St
                   }
               },
               Err(_) => {
-                res_data = errors::AdHocErrors::database_pool(res_data);
+                res_data = errors::Errors::database_pool(res_data);
                 Err(())
               }
             }
@@ -341,10 +340,10 @@ pub fn edit_link(link_id: &String, control_key: &String, new_link_id: &Option<St
             }
           }
         },
-        Ok(_) => Err(errors::AdHocErrors::invalid_control_key(res_data, control_key, link_id)),
+        Ok(_) => Err(errors::Errors::invalid_control_key(res_data, control_key, link_id)),
         Err(r) => Err(r)
       },
-      Ok(_) => Err(errors::AdHocErrors::link_id_not_found(res_data, link_id)),
+      Ok(_) => Err(errors::Errors::link_id_not_found(res_data, link_id)),
       Err(r) => Err(r)
     }
   } else {

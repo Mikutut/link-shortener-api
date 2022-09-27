@@ -24,8 +24,8 @@ pub struct RateLimitedWrappingResponder<'h, R> {
 }
 
 #[catch(429)]
-pub async fn rate_limited<'a>(req: &Request<'_>) -> Result<RateLimitedWrappingResponder<'a, (Status, Json<Response<(), ()>>)>, (Status, Json<Response<(), ()>>)> {
-  let mut response_data: ResponseData<(), ()> = ResponseData::new();
+pub async fn rate_limited<'a>(req: &Request<'_>) -> Result<RateLimitedWrappingResponder<'a, (Status, Json<Response<()>>)>, (Status, Json<Response<()>>)> {
+  let mut response_data: ResponseData<()> = ResponseData::new();
 
   response_data = response_data
     .set_status(Status::InternalServerError)
@@ -81,8 +81,8 @@ pub async fn rate_limited<'a>(req: &Request<'_>) -> Result<RateLimitedWrappingRe
 }
 
 #[catch(422)]
-pub fn invalid_request_data() -> (Status, Json<Response<(), ()>>) {
-  ResponseData::<(), ()>::new()
+pub fn invalid_request_data() -> (Status, Json<Response<()>>) {
+  ResponseData::<()>::new()
     .set_status(Status::UnprocessableEntity)
     .set_error_type(ResponseErrorType::ValidationError)
     .set_error_message(String::from("Could not process request. Make sure your request body is of correct format."))
@@ -91,8 +91,8 @@ pub fn invalid_request_data() -> (Status, Json<Response<(), ()>>) {
 }
 
 #[catch(default)]
-pub fn default_catcher(status: Status, _req: &Request) -> (Status, Json<Response<(), ()>>) {
-  ResponseData::<(), ()>::new()
+pub fn default_catcher(status: Status, _req: &Request) -> (Status, Json<Response<()>>) {
+  ResponseData::<()>::new()
     .set_status(status)
     .set_error_type(ResponseErrorType::UndefinedError)
     .set_error_message(String::from("Could not process request. Contact the administrator."))

@@ -1,7 +1,7 @@
-use std::marker::PhantomData;
 use serde::{Serialize};
 use super::*;
 use rocket::http::Status;
+use std::boxed::Box;
 
 #[derive(Debug, Serialize, Clone)]
 #[serde(untagged)]
@@ -22,7 +22,7 @@ pub enum Errors {
     request_error_message: String,
     #[serde(rename = "requestErrorData")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    request_error_data: Option<Errors>
+    request_error_data: Option<Box<Errors>>
   },
   LinkIdTooLongError {
     #[serde(rename = "providedIdLength")]
@@ -33,13 +33,8 @@ pub enum Errors {
   NoError
 }
 
-pub struct AdHocErrors<S: Serialize, E: Serialize> {
-  _one: PhantomData<S>,
-  _two: PhantomData<E>
-}
-
-impl<S: Serialize, E: Serialize> AdHocErrors<S, E> {
-  pub fn invalid_control_key(mut response_data: ResponseData<S, E>, control_key: &String, link_id: &String) -> ResponseData<S, E> {
+impl Errors {
+  pub fn invalid_control_key<S: Serialize>(mut response_data: ResponseData<S>, control_key: &String, link_id: &String) -> ResponseData<S> {
     response_data = response_data
       .set_status(Status::Unauthorized)
       .set_error_type(ResponseErrorType::InvalidControlKeyError)
@@ -47,7 +42,7 @@ impl<S: Serialize, E: Serialize> AdHocErrors<S, E> {
 
     response_data
   }
-  pub fn database_pool(mut response_data: ResponseData<S, E>) -> ResponseData<S, E> {
+  pub fn database_pool<S: Serialize>(mut response_data: ResponseData<S>) -> ResponseData<S> {
     response_data = response_data
       .set_status(Status::InternalServerError)
       .set_error_type(ResponseErrorType::DatabaseError)
@@ -55,7 +50,7 @@ impl<S: Serialize, E: Serialize> AdHocErrors<S, E> {
 
     response_data
   }
-  pub fn link_id_not_found(mut response_data: ResponseData<S, E>, link_id: &String) -> ResponseData<S, E> {
+  pub fn link_id_not_found<S: Serialize>(mut response_data: ResponseData<S>, link_id: &String) -> ResponseData<S> {
     response_data = response_data
       .set_status(Status::NotFound)
       .set_error_type(ResponseErrorType::LinkNotFoundError)
@@ -63,21 +58,21 @@ impl<S: Serialize, E: Serialize> AdHocErrors<S, E> {
 
     response_data
   }
-  pub fn target_invalid(mut response_data: ResponseData<S, E>, target: &String) -> ResponseData<S, E> {
-    response_data = response_data
-      .set_status(Status::BadRequest)
-      .set_error_type(ResponseErrorType::ValidationError)
-      .set_error_message(format!("Target '{}' is not a valid URL!", target));
-
-    response_data
-  }
-  pub fn duplicate_id(mut response_data: ResponseData<S, E>, link_id: &String) -> ResponseData<S, E> {
+  pub fn duplicate_id<S: Serialize>(mut response_data: ResponseData<S>, link_id: &String) -> ResponseData<S> {
     response_data = response_data.error(
       Status::Conflict,
       ResponseErrorType::DuplicateIdError,
       format!("Link with ID '{}' already exists!", link_id),
       None
     );
+
+    response_data
+  }
+  pub fn target_invalid<S: Serialize>(mut response_data: ResponseData<S>, target: &String) -> ResponseData<S> {
+    response_data = response_data
+      .set_status(Status::BadRequest)
+      .set_error_type(ResponseErrorType::ValidationError)
+      .set_error_message(format!("Target '{}' is not a valid URL!", target));
 
     response_data
   }
