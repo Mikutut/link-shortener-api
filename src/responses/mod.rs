@@ -32,7 +32,7 @@ pub enum ResponseType {
 }
 
 #[derive(Debug, Serialize, Clone)]
-pub struct Response<S: Serialize, E: Serialize> {
+pub struct Response<S: Serialize> {
   #[serde(skip_serializing)]
   pub status: Status,
   #[serde(rename = "status")]
@@ -49,10 +49,10 @@ pub struct Response<S: Serialize, E: Serialize> {
   pub error_message: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
   #[serde(rename = "errorData")]
-  pub error_data: Option<errors::Errors<E>>
+  pub error_data: Option<errors::Errors>
 }
 
-impl<S: Serialize, E: Serialize> Response<S, E> {
+impl<S: Serialize> Response<S> {
   pub fn json(self) -> Json<Self> {
     Json(self)
   }
@@ -63,16 +63,16 @@ impl<S: Serialize, E: Serialize> Response<S, E> {
 }
 
 #[derive(Debug, Clone)]
-pub struct ResponseData<S: Serialize, E: Serialize> {
+pub struct ResponseData<S: Serialize> {
   status: Status,
   status_type: ResponseType,
   data: Option<S>,
   error_type: Option<ResponseErrorType>,
   error_message: Option<String>,
-  error_data: Option<errors::Errors<E>>
+  error_data: Option<errors::Errors>
 }
 
-impl<S: Serialize, E: Serialize> ResponseData<S, E> {
+impl<S: Serialize> ResponseData<S> {
   pub fn new() -> Self {
     ResponseData {
       status: Status::InternalServerError,
@@ -84,7 +84,7 @@ impl<S: Serialize, E: Serialize> ResponseData<S, E> {
     }
   }
 
-  pub fn transform<T>(self, data: Option<T>) -> ResponseData<T, E>
+  pub fn transform<T>(self, data: Option<T>) -> ResponseData<T>
   where
     T: Serialize 
   {
@@ -95,20 +95,6 @@ impl<S: Serialize, E: Serialize> ResponseData<S, E> {
       error_type: self.error_type,
       error_message: self.error_message,
       error_data: self.error_data
-    }
-  }
-
-  pub fn transform_error<T>(self, data: Option<errors::Errors<T>>) -> ResponseData<S, T>
-  where
-    T: Serialize
-  {
-    ResponseData {
-      status: self.status,
-      status_type: self.status_type,
-      data: self.data,
-      error_type: self.error_type,
-      error_message: self.error_message,
-      error_data: data
     }
   }
 
@@ -136,7 +122,7 @@ impl<S: Serialize, E: Serialize> ResponseData<S, E> {
       None => None
     }
   }
-  pub fn get_error_data(&self) -> Option<&errors::Errors<E>> {
+  pub fn get_error_data(&self) -> Option<&errors::Errors> {
     match &self.error_data {
       Some(error_data) => Some(error_data),
       None => None
@@ -163,7 +149,7 @@ impl<S: Serialize, E: Serialize> ResponseData<S, E> {
     self.error_message = Some(error_message);
     self
   }
-  pub fn set_error_data(mut self, data: errors::Errors<E>) -> Self {
+  pub fn set_error_data(mut self, data: errors::Errors) -> Self {
     self.error_data = Some(data);
     self
   }
@@ -196,7 +182,7 @@ impl<S: Serialize, E: Serialize> ResponseData<S, E> {
 
     self
   }
-  pub fn error(mut self, status: Status, error_type: ResponseErrorType, error_message: String, error_data: Option<errors::Errors<E>>) -> Self {
+  pub fn error(mut self, status: Status, error_type: ResponseErrorType, error_message: String, error_data: Option<errors::Errors>) -> Self {
     self = self
       .clear_data();
 
@@ -208,7 +194,7 @@ impl<S: Serialize, E: Serialize> ResponseData<S, E> {
     self
   }
 
-  pub fn to_response(self) -> Response<S, E> {
+  pub fn to_response(self) -> Response<S> {
     let code = self.status.code;
 
     Response {
@@ -223,8 +209,8 @@ impl<S: Serialize, E: Serialize> ResponseData<S, E> {
   }
 }
 
-impl<S: Serialize + Clone, E: Serialize + Clone> ResponseData<S, E> {
-  pub fn clone(&self) -> ResponseData<S, E> {
+impl<S: Serialize + Clone> ResponseData<S> {
+  pub fn clone(&self) -> ResponseData<S> {
     ResponseData {
       status: self.status.clone(),
       status_type: self.status_type.clone(),
@@ -240,7 +226,7 @@ impl<S: Serialize + Clone, E: Serialize + Clone> ResponseData<S, E> {
       None => None
     }
   }
-  pub fn clone_error_data(&self) -> Option<errors::Errors<E>> {
+  pub fn clone_error_data(&self) -> Option<errors::Errors> {
     match &self.error_data {
       Some(data) => Some(data.clone()),
       None => None

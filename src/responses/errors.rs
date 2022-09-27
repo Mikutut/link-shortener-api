@@ -5,7 +5,7 @@ use rocket::http::Status;
 
 #[derive(Debug, Serialize, Clone)]
 #[serde(untagged)]
-pub enum Errors<E: Serialize> {
+pub enum Errors {
   RateLimitedError {
     #[serde(rename = "maxRequests")]
     max_requests: i64,
@@ -22,7 +22,7 @@ pub enum Errors<E: Serialize> {
     request_error_message: String,
     #[serde(rename = "requestErrorData")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    request_error_data: Option<E>
+    request_error_data: Option<Errors>
   },
   LinkIdTooLongError {
     #[serde(rename = "providedIdLength")]
@@ -30,14 +30,7 @@ pub enum Errors<E: Serialize> {
     #[serde(rename = "maxIdLength")]
     max_id_length: usize
   },
-  CustomError(E),
   NoError
-}
-
-impl<E: Serialize> Errors<E> {
-  pub fn transform<F: Serialize>(self, new_error: Errors<F>) -> Errors<F> {
-    new_error
-  }
 }
 
 pub struct AdHocErrors<S: Serialize, E: Serialize> {
