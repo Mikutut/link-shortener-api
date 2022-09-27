@@ -29,7 +29,7 @@ pub fn get_check_id(link_id: String, db: &State<Pool>, _rl: guards::rate_limit::
   }
 }
 
-#[get("/<link_id>")]
+#[get("/l/<link_id>")]
 pub fn get_access_link(link_id: String, db: &State<Pool>, _rl: guards::rate_limit::RateLimit) -> Result<Redirect, (Status, Json<Response<()>>)> {
   match handlers::root::access_link(link_id, db) {
     Ok(redirect) => Ok(redirect),
